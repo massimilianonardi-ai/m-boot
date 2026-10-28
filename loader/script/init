@@ -1,0 +1,63 @@
+
+export root
+export prefix
+export core_dir
+export root_dir
+
+set root="(memdisk)"
+set prefix="(memdisk)"
+set core_dir="(memdisk)"
+set root_dir=""
+
+set prefix="/m/boot/loader"
+set root_dir="/m/boot/loader"
+
+set root_conf="$core_dir/root.conf"
+set env_file="$root_dir/environment"
+
+if [ -f "$root_conf" ]
+then
+  source "$root_conf"
+elif [ -n "$cmdpath" ]
+then
+  regexp --set root '(\(.*\))' "$cmdpath"
+else
+  search --no-floppy --file --set root "$env_file"
+fi
+
+export theme_dir
+
+if [ -d "$core_dir/theme" ]
+then
+  set theme_dir="$core_dir/theme"
+else
+  set theme_dir="$root_dir/theme"
+fi
+
+export boot_dir
+export system_dir
+
+export linux_dir
+export tools_dir
+export vm_dir
+export windows_dir
+
+set boot_dir="/m/boot"
+set system_dir="/m/sys"
+
+set linux_dir="$system_dir/linux"
+set tools_dir="$system_dir/tools"
+set vm_dir="$system_dir/vm"
+set windows_dir="$system_dir/windows"
+
+if [ -f "$env_file" ]
+then
+  load_env --file "$env_file" --skip-sig
+fi
+
+source "$core_dir/gui"
+
+export main
+
+set main="$core_dir/main"
+source "$main"

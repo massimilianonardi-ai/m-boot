@@ -1,0 +1,35 @@
+
+export gfxmode
+export theme
+export theme_name
+export current_theme_dir
+
+set theme_name=default
+
+set gfxmode=1920x1080,1920x1200,1600x1050,1600x1200,1280x720,1280x800,1024x768,800x600x24,640x480
+#set gfxmode=auto
+
+if [ "$grub_platform" == "efi" ]
+then
+  insmod efi_gop
+  insmod efi_uga
+else
+  insmod vbe
+  insmod vga
+fi
+insmod gfxterm
+terminal_output gfxterm
+
+insmod png
+insmod tga
+insmod jpeg
+
+insmod gfxmenu
+set current_theme_dir=$theme_dir/$theme_name
+set theme=$current_theme_dir/theme.cfg
+source $current_theme_dir/fonts.cfg
+
+function setTheme
+{
+  echo function setTheme
+}

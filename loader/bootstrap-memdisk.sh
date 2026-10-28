@@ -1,0 +1,1 @@
+normal (memdisk)/init

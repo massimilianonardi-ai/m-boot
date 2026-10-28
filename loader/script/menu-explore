@@ -1,0 +1,49 @@
+set default="0"
+set timeout=-1
+
+export path
+export file
+
+if [ -z "$path" ]
+then
+  for k in (*)
+  do
+    regexp -s device '\((.*)\)' "$k"
+    probe --fs --set fstype "$device"
+    if [ -z "$fstype" -o "$fstype" == "procfs" ]
+    then
+      continue
+    fi
+    menuentry "$k" "$k" {
+      set path="$2"
+      configfile "$core_dir/menu-explore"
+    }
+    unset fstype
+  done
+else
+  menuentry "$path -> [..]" --hotkey=p {
+    regexp --set parent '^(\(.*\).*)[\/]' "$path"
+    if [ -z "$parent" -o "$parent" == "$path" ]
+    then
+      set path=""
+    else
+      set path="$parent"
+    fi
+    configfile "$core_dir/menu-explore"
+  }
+  
+  for k in "$path"/*
+  do
+    regexp --set name '^\(.*\).*[\/](.*)' "$k"
+    menuentry "$name" "$k" {
+      set path="$2"
+      if [ -f "$2" ]
+      then
+        set file="$2"
+        configfile "$core_dir/menu-action"
+      else
+        configfile "$core_dir/menu-explore"
+      fi
+    }
+  done
+fi

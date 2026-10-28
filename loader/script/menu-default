@@ -1,0 +1,61 @@
+set default="0"
+set timeout="10"
+
+set bootmgr_dir=$boot_dir/bootmgr
+set ntldr_dir=$boot_dir/ntldr
+
+menuentry "Microsoft Windows 10 Enterprise" --hotkey=1 {
+  linux16 $boot_dir/memdisk raw
+  initrd16 $bootmgr_dir/bootmgr_windows10.vhd
+}
+
+menuentry "Microsoft Windows 10 Enterprise Test" --hotkey=w {
+  linux16 $boot_dir/memdisk raw
+  initrd16 $bootmgr_dir/bootmgr_windows10_test.vhd
+}
+
+menuentry "Microsoft Windows 7 PE 64" --hotkey=p {
+  linux16 $boot_dir/memdisk iso raw
+  initrd16 $windows_dir/windows_pe_64.iso
+}
+
+menuentry "KUbuntu" --hotkey=k {
+  set loopfile=$vm_dir/kubuntu.vpi
+#  set file="$loopfile"
+#  regexp --set device '\((.*)\)' "$file"
+#  probe --fs-uuid --set uuid "$device"
+#  regexp --set loopfile '^\(.*\)(.*)' "$file"
+  loopback loop0 $loopfile
+  set loop_root=(loop0)
+  linux $loop_root/vmlinuz root=UUID=$uuid loop=$loopfile ro quiet splash video=vesafb
+  initrd $loop_root/initrd.img
+#  initrd $linux_dir/initrd.img
+}
+
+menuentry "KUbuntu (NaVi)" --hotkey=k {
+  set loopfile=$vm_dir/kubuntu-navi/disk-flat.vmdk
+  loopback loop0 $loopfile
+  set loop_root=(loop0,1)
+#  linux $loop_root/vmlinuz root=UUID=$uuid loop=$loopfile loopfstype=btrfs loopflags="-o loop,offset=1048576" ro quiet splash video=vesafb
+  linux $loop_root/vmlinuz root=UUID=$uuid loop=$loopfile ro quiet splash video=vesafb
+  initrd $loop_root/initrd.img
+#  initrd $linux_dir/initrd.img
+}
+
+menuentry "Linux NaVi" --hotkey=l {
+  set file="$linux_dir/linux-navi/disk-flat.vmdk"
+  regexp --set device '\((.*)\)' "$file"
+  probe --fs-uuid --set uuid "$device"
+  regexp --set loopfile '^\(.*\)(.*)' "$file"
+  set loopfile="/host$loopfile"
+  loopback loop0 "$file"
+#  set root=(loop0)
+#  probe --fs --set fstype "loop0"
+#  if [ -z "$fstype" ]
+#  then
+#    set root=(loop0,1)
+#  fi
+  set root=(loop0,1)
+  linux /@/vmlinuz root=UUID=$uuid loop=$loopfile ro quiet splash video=vesafb
+  initrd /@/initrd.img
+}

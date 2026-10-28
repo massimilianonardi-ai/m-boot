@@ -1,0 +1,49 @@
+
+submenu "Load other detected OS" {
+  if [ "$grub_platform" == "efi" ]
+  then
+    for k in (*)/EFI/*/*.efi
+    do
+      menuentry "$k" {
+        chainloader "$k"
+      }
+    done
+  else
+    for k in (*)
+    do
+      menuentry "$k" {
+#        set root="$k"
+#        chainloader +1
+        chainloader "$k"+1
+      }
+    done
+  fi
+}
+
+#submenu "Boot ISO" {
+#  for k in $tools_dir/*.iso
+#  do
+#    menuentry "$k" "$k" {
+#      set file="$2"
+#      configfile "$core_dir/menu-iso-boot"
+#    }
+#  done
+#}
+
+menuentry "Tools" {
+  set isopath="$tools_dir"
+  export isopath
+  configfile "$core_dir/menu-iso-boot"
+}
+
+menuentry "Explore" --hotkey=e {
+  configfile "$core_dir/menu-explore"
+}
+
+menuentry "Devices" --hotkey=d {
+  configfile "$core_dir/menu-devices"
+}
+
+menuentry "Configuration" --hotkey=c {
+  configfile "$core_dir/menu-conf"
+}

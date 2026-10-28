@@ -1,0 +1,29 @@
+set default="0"
+set timeout=-1
+
+for k in (*)
+do
+  regexp -s device '\((.*)\)' $k
+  probe --fs --set fstype "$device"
+  if [ -z "$fstype" -o "$fstype" == "procfs" ]
+  then
+    continue
+  fi
+  probe --label --set label "$device"
+  probe --fs-uuid --set uuid "$device"
+  probe --partmap --set partmap "$device"
+  probe --driver --set driver "$device"
+  if [ "$device" == "$root" ]
+  then
+    set is_root=" (root)"
+  fi
+  menuentry "$k$is_root \"$driver\" \"$partmap\" \"$label\" \"$uuid\"" "$k" {
+    set root="$2"
+    configfile "$core_dir/menu-devices"
+  }
+  unset fstype
+  unset label
+  unset uuid
+  unset partmap
+  unset driver
+done

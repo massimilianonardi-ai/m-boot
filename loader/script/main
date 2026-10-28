@@ -1,0 +1,39 @@
+set default="0"
+set timeout=-1
+
+export menu
+export timeout_default
+
+if [ -z "$timeout_default" ]
+then
+  set timeout_default="10"
+fi
+
+set menu="$core_dir/menu"
+if [ -f "$menu" ]
+then
+  set timeout="$timeout_default"
+  source "$menu"
+else
+  set menu="$root_dir/menu"
+  if [ -f "$menu" ]
+  then
+    set timeout="$timeout_default"
+    source "$menu"
+  else
+    set menu="$core_dir/menu-default"
+    source "$menu"
+  fi
+fi
+
+menuentry "Extra" --hotkey=x {
+  configfile "$core_dir/menu-extra"
+}
+
+menuentry "Reboot" --hotkey=r {
+  reboot
+}
+
+menuentry "Shutdown" --hotkey=s {
+  halt
+}

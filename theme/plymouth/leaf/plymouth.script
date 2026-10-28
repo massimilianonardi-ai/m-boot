@@ -1,0 +1,43 @@
+# Leaf Plymouth theme
+
+background = "background.png";
+logo = "logo.png";
+progress = "progress.png";
+
+Window.SetBackgroundTopColor(0.00, 0.00, 0.00);
+Window.SetBackgroundBottomColor(0.00, 0.00, 0.00);
+
+# BACKGROUND IMAGE
+background_image = Image(background);
+background_image = background_image.Scale(Window.GetWidth(), Window.GetHeight());
+background_sprite = Sprite(background_image);
+background_sprite.SetPosition(0, 0, -10000);
+
+# LOGO
+logo_image = Image(logo);
+logo_sprite = Sprite(logo_image);
+logo_sprite.SetOpacity(0);
+#logo_text_image = Image.Text("text line 1 \n text line 2", R, G, B, A, "fontname size", "alignement left, center, or right");
+logo_text_image = Image.Text("Linux is loading...\n...please wait!", 0.8, 1.0, 0.2, 0.9, "UnPilgi 32", "center");
+logo_text_sprite = Sprite(logo_text_image);
+
+# PROGRESS
+progress_image = Image(progress);
+progress_image = progress_image.Scale(progress_image.GetWidth() * 0.06, progress_image.GetHeight() * 0.06);
+progress_sprite = Sprite(progress_image);
+
+# ANIMATION
+logo_sprite.SetPosition(Window.GetWidth() * 0.5 - logo_image.GetWidth () * 0.5, Window.GetHeight() * 0.90 - logo_image.GetHeight() - progress_image.GetHeight(), 10);
+logo_text_sprite.SetPosition(Window.GetWidth() * 0.5 - logo_text_image.GetWidth () * 0.5, Window.GetHeight() * 0.80 - logo_text_image.GetHeight() - progress_image.GetHeight(), 12);
+progress_sprite.SetPosition(Window.GetWidth() * 0.5 - progress_image.GetWidth () * 0.5, Window.GetHeight() * 0.90 - logo_image.GetHeight() * 0.20 - progress_image.GetHeight(), 11);
+progress_sprite.SetOpacity(0.80);
+fun progress_callback(time, progress)
+{
+  progress_sprite.SetImage(progress_image.Rotate(1.6 * time));
+  if(time <= 5)
+  {
+    logo_sprite.SetOpacity(time * 0.2);
+  }
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+

@@ -1,0 +1,1214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Plymouth Script Documentation</title>
+
+<style type="text/css">
+article,
+header,
+footer,
+nav {
+	display: block;
+}
+
+.header {
+	margin: 0;
+	font-size: 140%;
+	font-weight: bold;
+	line-height: 1em;
+	display: block;
+}
+
+.inlineheader .author {
+	margin: 0;
+	font-size: 112%;
+	font-weight: bold;
+	display: block;
+}
+
+.actions ul {
+	margin: 0;
+	padding: 6px .4em;
+	height: 1em;
+	list-style-type: none;
+}
+.actions li {
+	display: inline;
+	padding: .2em;
+}
+.pageheader .actions ul {
+	border-bottom: 1px solid #000;
+}
+
+.inlinepage .actions ul {
+	border-bottom: 0;
+}
+
+#otherlanguages ul {
+	margin: 0;
+	padding: 6px;
+	list-style-type: none;
+}
+#otherlanguages li {
+	display: inline;
+	padding: .2em .4em;
+}
+.pageheader #otherlanguages {
+	border-bottom: 1px solid #000;
+}
+
+.inlinecontent {
+	margin-top: .4em;
+}
+
+.pagefooter,
+.inlinefooter,
+.comments {
+	clear: both;
+}
+
+#pageinfo {
+	margin: 1em 0;
+	border-top: 1px solid #000;
+}
+
+.tags {
+	margin-top: 1em;
+}
+
+.inlinepage .tags {
+        display: inline;
+}
+
+.mapparent {
+	text-decoration: none;
+}
+
+.img caption {
+	font-size: 80%;
+	caption-side: bottom;
+	text-align: center;
+}
+
+img.img {
+	margin: 0.5ex;
+}
+
+.align-left {
+	float:left;
+}
+
+.align-right {
+	float:right;
+}
+
+#backlinks {
+	margin-top: 1em;
+}
+
+#searchform {
+	display: inline;
+	float: right;
+}
+
+#editcontent {
+	width: 98%;
+}
+
+.editcontentdiv {
+	width: auto;
+	overflow: auto;
+}
+
+img {
+	border-style: none;
+}
+
+pre {
+	overflow: auto;
+}
+
+div.recentchanges {
+	border-style: solid;
+	border-width: 1px;
+	overflow: auto;
+	width: auto;
+	clear: none;
+	background: #eee;
+	color: black !important;
+}
+.recentchanges .metadata {
+	padding: 0px 0.5em;
+}
+.recentchanges .changelog {
+	font-style: italic;
+	clear: both;
+	display: block;
+	padding: 1px 2px;
+	background: white !important;
+	color: black !important;
+}
+.recentchanges .desc {
+	display: none;
+}
+.recentchanges .diff {
+	display: none;
+}
+.recentchanges .committer {
+	float: left;
+	margin: 0;
+	width: 40%;
+}
+.recentchanges .committype {
+	float: left;
+	margin: 0;
+	width: 5%;
+	font-size: small;
+}
+.recentchanges .changedate {
+	float: left;
+	margin: 0;
+	width: 35%;
+	font-size: small;
+}
+.recentchanges .pagelinks,
+.recentchanges .revert {
+	float: right;
+	margin: 0;
+	width: 60%;
+}
+
+.blogform, #blogform {
+	padding: 10px 10px;
+	border: 1px solid #aaa;
+	background: #eee;
+	color: black !important;
+	width: auto;
+	overflow: auto;
+}
+
+.inlinepage {
+	padding: 10px 10px;
+	border: 1px solid #aaa;
+	overflow: auto;
+}
+
+.pagedate,
+.pagelicense,
+.pagecopyright {
+	font-style: italic;
+	display: block;
+	margin-top: 1em;
+}
+
+.error {
+	color: #C00;
+}
+
+.sidebar {
+	width: 20ex;
+	float: right;
+	margin-left: 4px;
+	margin-bottom: 4px;
+	margin-top: -1px;
+	padding: 0ex 2ex;
+	background: white;
+	border: 1px solid black;
+	color: black !important;
+}
+
+hr.poll {
+	height: 10pt;
+	color: white !important;
+	background: #eee;
+	border: 2px solid black;
+}
+div.poll {
+	margin-top: 1ex;
+	margin-bottom: 1ex;
+	padding: 1ex 1ex;
+	border: 1px solid #aaa;
+}
+
+span.color {
+	padding: 2px;
+}
+
+.comment-header,
+.microblog-header {
+	font-style: italic;
+	margin-top: .3em;
+}
+.comment .author,
+.microblog .author {
+	font-weight: bold;
+}
+.comment-subject {
+	font-weight: bold;
+}
+.comment-avatar {
+	float: right;
+}
+.comment {
+	border: 1px solid #aaa;
+	padding: 3px;
+}
+
+div.progress {
+	margin-top: 1ex;
+	margin-bottom: 1ex;
+	border: 1px solid #888;
+	width: 400px;
+	background: #eee;
+	color: black !important;
+	padding: 1px;
+}
+div.progress-done {
+	background: #ea6 !important;
+	color: black !important;
+	text-align: center;
+	padding: 1px;
+}
+
+/* things to hide in printouts */
+@media print {
+	.actions { display: none; }
+	.tags { display: none; }
+	.trails { display: none; }
+	.feedbutton { display: none; }
+	#searchform { display: none; }
+	.blogform, #blogform { display: none; }
+	#backlinks { display: none; }
+}
+
+/* infobox template */
+.infobox {
+	float: right;
+	margin-left: 2ex;
+	margin-top: 1ex;
+	margin-bottom: 1ex;
+	padding: 1ex 1ex;
+	border: 1px solid #aaa;
+	background: white;
+	color: black !important;
+}
+
+/* notebox template */
+.notebox {
+	float: right;
+	margin-left: 2ex;
+	margin-top: 1ex;
+	margin-bottom: 1ex;
+	padding: 1ex 1ex;
+	border: 1px solid #aaa;
+	width: 25%;
+	background: white;
+	color: black !important;
+}
+
+/* popup template and backlinks hiding */
+.popup {
+	border-bottom: 1px dotted #366;
+	color: #366;
+}
+.popup .balloon,
+.popup .paren,
+.popup .expand {
+	display: none;
+}
+.popup:hover .balloon,
+.popup:focus .balloon {
+	position: absolute;
+	display: inline;
+	margin: 1em 0 0 -2em;
+	padding: 0.625em;
+	border: 2px solid;
+	background-color: #dee;
+	color: black;
+}
+
+/* form styling */
+fieldset {
+	margin: 1ex 0;
+	border: 1px solid black;
+}
+legend {
+	padding: 0 1ex;
+}
+.fb_submit {
+	float: left;
+	margin: 2px 0;
+}
+label.block {    
+	display: block;   
+}
+label.inline {    
+	display: inline;
+}
+input#openid_identifier {
+	background: url(wikiicons/openidlogin-bg.gif) no-repeat;
+	background-color: #fff;
+	background-position: 0 50%;
+	color: #000;
+	padding-left: 18px;
+}
+input#searchbox {
+	background: url(wikiicons/search-bg.gif) no-repeat;
+	background-color: #fff;
+	background-position: 100% 50%;
+	color: #000;
+	padding-right: 16px;
+}
+/* invalid form fields */
+.fb_invalid {
+	color: red;
+	background: white !important;
+}
+/* required form fields */
+.fb_required {
+	font-weight: bold;
+}
+
+/* highlight plugin */
+pre.hl { color:#000000; background-color:#ffffff; }
+.hl.num { color:#2928ff; }
+.hl.esc { color:#ff00ff; }
+.hl.str { color:#ff0000; }
+.hl.dstr { color:#818100; }
+.hl.slc { color:#838183; font-style:italic; }
+.hl.com { color:#838183; font-style:italic; }
+.hl.dir { color:#008200; }
+.hl.sym { color:#000000; }
+.hl.line { color:#555555; }
+.hl.mark { background-color:#ffffbb; }
+.hl.kwa { color:#000000; font-weight:bold; }
+.hl.kwb { color:#830000; }
+.hl.kwc { color:#000000; font-weight:bold; }
+.hl.kwd { color:#010181; }
+
+/* calendar plugin */
+.month-calendar-day-this-day,
+.year-calendar-this-month {
+	background-color: #eee;
+}
+.month-calendar-day-head,
+.month-calendar-day-nolink,
+.month-calendar-day-link,
+.month-calendar-day-this-day,
+.month-calendar-day-future {
+	text-align: right;
+}
+.month-calendar-arrow A:link,
+.year-calendar-arrow A:link,
+.month-calendar-arrow A:visited,
+.year-calendar-arrow A:visited {
+	text-decoration: none;
+	font-weight: normal;
+	font-size: 150%;
+}
+
+/* outlines */
+li.L1 { list-style: upper-roman; }
+li.L2 { list-style: decimal; }
+li.L3 { list-style: lower-alpha; }
+li.L4 { list-style: disc; }
+li.L5 { list-style: square; }
+li.L6 { list-style: circle; }
+li.L7 { list-style: lower-roman; }
+li.L8 { list-style: upper-alpha; }
+
+/* tag cloud */
+.pagecloud {
+	float: right;
+	width: 30%;
+	text-align: center;
+	padding: 10px 10px;
+	border: 1px solid #aaa;
+	background: #eee;
+	color: black !important;
+}
+.smallestPC { font-size: 70%; }
+.smallPC { font-size: 85%; }
+.normalPC { font-size: 100%; }
+.bigPC { font-size: 115%; }
+.biggestPC { font-size: 130%; }
+
+/* orange feed button */
+.feedbutton {
+	background: #ff6600;
+	color: white !important;
+	border-left: 1px solid #cc9966;
+	border-top: 1px solid #ccaa99;
+	border-right: 1px solid #993300;
+	border-bottom: 1px solid #331100;
+	padding: 0px 0.5em 0px 0.5em;
+	font-family: sans-serif;
+	font-weight: bold;
+	font-size: small;
+	text-decoration: none;
+	margin-top: 1em;
+}
+.feedbutton:hover {
+	color: white !important;
+	background: #ff9900;
+}
+
+.FlattrButton {
+	display: none;
+}
+
+/* openid selector */
+#openid_choice {
+	display: none;
+}
+#openid_input_area {
+	clear: both;
+	padding: 10px;
+}
+#openid_btns, #openid_btns br {
+	clear: both;
+}
+#openid_highlight {
+	background-color: black;
+	float: left;
+}
+.openid_large_btn {
+	padding: 1em 1.5em;
+	border: 1px solid #DDD;
+	margin: 3px;
+	float: left;
+}
+.openid_small_btn {
+	padding: 4px 4px;
+	border: 1px solid #DDD;
+	margin: 3px;
+	float: left;
+}
+a.openid_large_btn:focus {
+	outline: none;
+}
+a.openid_large_btn:focus {
+	outline-style: none;
+}
+.openid_selected {
+	border: 4px solid #DDD;
+}
+
+.fileupload-content .ui-progressbar {
+	width: 200px;
+	height: 20px;
+}
+.fileupload-content .ui-progressbar-value {
+	background: url(ikiwiki/images/pbar-ani.gif);
+}
+
+.trails {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+.trail {
+	display: block;
+	clear: both;
+	position: relative;
+}
+
+.trailprev {
+	display: block;
+	text-align: left;
+	position: absolute;
+	top: 0%;
+	left: 3%;
+	width: 30%;
+}
+
+.trailup {
+	display: block;
+	text-align: center;
+	margin-left: 35%;
+	margin-right: 35%;
+}
+
+.trailnext {
+	display: block;
+	text-align: right;
+	position: absolute;
+	top: 0%;
+	width: 30%;
+	right: 3%;
+}
+
+.trailsep {
+	display: none;
+}
+
+
+
+.pageheader {
+  padding: 2em 2em 2em 2em;
+  position: relative;
+  overflow: hidden;
+  background: #dedede;
+  /* background: #2b5e82; */
+  border-color: gray;
+  border-style: none none solid none;
+  border-width: 1px;
+}
+
+/*
+.pageheader .header {
+  float: left;
+}
+*/
+
+.logo {
+  float: left;
+  clear: left;
+}
+
+.headerpath {
+  float: left;
+  clear: left;
+}
+
+.title {
+  color: #2b5e82;
+  font-weight: bold;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #2b5e82;
+}
+
+.header {
+  font-size: 200%;
+}
+
+h1 {
+  font-size: 160%;
+/*  border-top: 5px solid #2b5e82;  */
+}
+
+h2 {
+  font-size: 130%;
+/*  border-top: 2px solid #2b5e82;  */
+}
+
+h3, h4, h5, h6 {
+  font-size: 110%;
+}
+
+#searchform {
+  margin: 0.3em;
+  float: right;
+  clear: right;
+}
+
+input#searchbox {
+  border: none;
+  padding: .5em;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #2b5e82;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+  -moz-box-shadow: inset 2px 2px 2px #1a1a1a;
+  -webkit-box-shadow: inset 2px 2px 2px #1a1a1a;
+  box-shadow: inset 2px 2px 2px #1a1a1a;
+}
+
+.pageheader .actions {
+  display: inline;
+  float: right;
+  clear: right;
+  text-align: right;
+}
+
+.pageheader .actions ul {
+  border-style: none;
+}
+
+.actions ul {
+  padding: 0.3em;
+  border-style: none;
+}
+
+.pageheader .actions ul li {
+  padding: 0;
+}
+
+.pageheader .actions ul li a, input[type="submit"] {
+  margin: 0.2em;
+  padding: 0.3em;
+  font-size: 1.01em;
+  background: white;
+  color: black;
+  text-decoration: none;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #2b5e82;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+}
+
+.pageheader .actions ul li a:hover, input[type="submit"]:hover {
+  text-decoration: underline;
+  color: black;
+}
+
+div.toggleable#attachments {
+  margin: 1em;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+/*  font-family: "Trebuchet MS", "Helvetica", "Arial", "Verdana", "sans-serif"; */
+  *font-size: small;
+  color: black;
+  background: white;
+  font-size: 1.01em;
+}
+
+a:link {
+  color: #2b5e82;
+}
+
+a:visited {
+  color: #52188b;
+}
+
+a:hover {
+  color: blue;
+}
+
+hr {
+  border-style: none;
+  background-color: #2b5e82;
+  height: 1px;
+}
+
+code, pre {
+  background-color: white;
+  color: #2e1a05;
+}
+
+pre {
+  padding: .5em;
+  margin: 1em;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #2b5e82;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+  -moz-box-shadow: 0px 0px 2px #1a1a1a;
+  -webkit-box-shadow: 0px 0px 2px #1a1a1a;
+  box-shadow: 0px 0px 2px #1a1a1a;
+}
+
+#content, #comments, #footer {
+  margin: 1em 2em;
+}
+
+#pageinfo {
+  border-color: gray;
+}
+
+#editcontent, #editmessage {
+  width: 90%;
+  background: white;
+  font-size: 1.01em;
+  font-family: Consolas, Monaco, "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Courier New", monospace;
+  line-height: 1.4em;
+  padding: .5em;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #2b5e82;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+}
+
+#editcontent {
+  height: 25em;
+}
+
+label[for="editmessage"] {
+  margin-top: 1em;
+}
+
+#editmessage {
+  margin-bottom: 1em;
+}
+
+.inlinepage {
+  margin: .4em 0;
+  padding: .4em 0;
+  border-style: none;
+  border-top: 1px solid gray;
+}
+
+.inlineheader {
+  font-size: 1.1em;
+  border-top: 2px solid gray;
+}
+
+/* Smaller headings for inline pages */
+.inlinepage h1 {
+  font-size: 1.1em;
+}
+
+.inlinepage h2 {
+  font-size: 1.01em;
+}
+
+.inlinepage h3 {
+  font-size: 1.01em;
+}
+
+div.recentchanges {
+  border-style: none;
+}
+
+/* recent change page */
+div.recentchanges {
+  background-color: white;
+}
+
+div.recentchanges div.metadata {
+  margin-top: 1.5em;
+  border-style: solid;
+  border-width: 2px;
+  border-color: gray;
+  -webkit-border-top-left-radius: 4px;
+  -webkit-border-top-right-radius: 4px;
+  -moz-border-radius-topleft: 4px;
+  -moz-border-radius-topright: 4px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-style: solid solid none solid;
+  background-color: #f2f2f2;
+  padding: .7em;
+}
+
+div.recentchanges div.changelog {
+    padding: .7em 2em;
+}
+
+div.recentchanges div.metadata *, span.pagelinks a {
+  float: none;
+  display: block;
+}
+
+span.pagelinks {
+  width: inherit !important;
+}
+
+span.pagelinks a, span.tags a {
+  margin: 0.2em;
+  padding: 0.2em;
+  font-size: 1.01em;
+  background: #e6e6e6;
+  color: black;
+  border-style: solid;
+  border-width: 2px;
+  border-color: gray;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+}
+
+span.pagelinks a:hover, span.tags a:hover {
+  background: #cccccc;
+  color: black;
+}
+
+div.recentchanges div.changelog {
+  border-style: solid;
+  border-width: 2px;
+  border-color: gray;
+  -webkit-border-bottom-left-radius: 4px;
+  -webkit-border-bottom-right-radius: 4px;
+  -moz-border-radius-bottomleft: 4px;
+  -moz-border-radius-bottomright: 4px;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-style: none solid solid solid;
+  background-color: #f2f2f2 !important;
+}
+
+span.desc br {
+  display: none !important;
+}
+
+div.titleandtags {
+  border-style: solid;
+  border-width: 2px;
+  border-color: gray;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+  background-color: #f2f2f2;
+  margin-top: 1.5em;
+  padding: .8em;
+}
+
+div.titleandtags h3, div.titleandtags span.tags {
+  padding: 0;
+}
+
+div.titleandtags h3 {
+  margin: 0 0 .5em 0;
+}
+
+div.titleandtags span.tags {
+  line-height: 2em;
+}
+
+div.titleandtags div.lastmodified {
+  float: right;
+}
+
+thead th {
+  color: white;
+  background-color: gray;
+  padding: .5em;
+}
+
+td {
+  padding: .2em .4em;
+}
+
+tr:nth-child(odd) {
+  background-color: #f2f2f2;
+}
+
+tr:nth-child(even) {
+  background-color: #d9d9d9;
+}
+
+/* table.ColorTable: See Nouveau's FeatureMatrix for example usage */
+table.ColorTable span.color {
+  display: block;
+  line-height: 3.5em;
+}
+
+table.ColorTable td {
+  margin: 0em;
+  padding: 0em;
+  border: 1px solid rgb(153, 153, 153);
+  text-align: center;
+}
+
+/* Don't know what these last two do but leaving those there just in case */
+.pagecloud {
+  width: auto;
+  border-color: red;
+}
+
+.sidebar {
+  width: 28ex;
+  border-bottom: 0;
+  border-right: 0;
+  border-top: 0;
+  margin-top: 0.5em;
+  padding: 0 0 0 2ex;
+  border-color: red;
+}
+</style>
+
+</head>
+<body>
+
+<div id="pagebody">
+
+<div id="content">
+<p>This is a brief introduction to the Plymouth scripting language. The 
+language has many points in common with Javascript and C, so if you know
+ those languages, little should be of surprise. </p>
+
+<h1 id="basics">Basics</h1>
+
+<p>There are three types of supported comments: </p>
+
+<pre># script style line comments
+// C++ style line comments
+/* and C style block comments /* which may be nested */ */</pre>
+
+<p>There are some basic objects: numbers, strings, hashes, functions and null. </p>
+
+<p>Simple expression operations such as must be terminated with a semicolon, e.g. </p>
+
+<pre>a = b;</pre>
+
+<p>Multiple operations can be grouped using curly “{ }” brackets, e.g. </p>
+
+<pre>{
+ a = b;
+ c = a + 8;
+}</pre>
+
+<p>Numbers can be operated with +, -, *, / and %. Amend assignments (+=, /= etc.) are allowed, as are pre/post inc/decrement, e.g. </p>
+
+<pre>a *= ++b;</pre>
+
+<p>Strings can be appended using + (even to numbers), e.g. </p>
+
+<pre>a = “A” + 7 + “B”;  # gives a string “A7B”</pre>
+
+<p>Applying operations on incomparable operands gives a NULL, e.g. </p>
+
+<pre>a = “eight” / 2;  # gives a NULL</pre>
+
+<p>Comparisons return a number 1, for true, or 0, for false, e.g. </p>
+
+<pre>a = (7 &gt;= 6); # sets a to 1
+b = ("Cat" == "Dog"); # sets b to 0</pre>
+
+<p>Conditional execution operations, “if/else”, “while” and “for” are supported, e.g. </p>
+
+<pre>if (a &gt; 0)
+ {
+  a--;
+  b = 0;
+ }
+else
+ a = 0</pre>
+
+<p>Conditions evaluate NULL, 0 and “” (empty string) to false, everything else is true, e.g. </p>
+
+<pre>while (a--)
+ b *= a;</pre>
+
+<p>Or operations are lazily evaluated and return the first value that evaluates to true (And returns the first false value), e.g. </p>
+
+<pre>value = cached || (cached = do_lookup (index)); # if cached is already set then it is used, otherwise a lookup is executed
+if (value &gt; 0 &amp;&amp; value &lt; 10) valid == 1;</pre>
+
+<p>Hashes can be created by simply accessing their contents using a dot or [] brackets, e.g. </p>
+
+<pre>a.size = 1;
+b = a[“size”]; # b equals 1</pre>
+
+<p>All hash indexing is done using strings even when using a number, e.g. </p>
+
+<pre>a[1] = 1;
+a[“1”] = 2; # a[1] now equals 2</pre>
+
+<p>An auto incrementing hash can be constructed by defining a set between [] brackets, wth the indexing starting at zero, e.g. </p>
+
+<pre>a = [1, "c", [3, 2]]; # a[0] equals 1, a[1] equals "C", a[2][0] equals 3, a[2][1] equals 2</pre>
+
+<p>To define a function use the “fun” keyword, e.g. </p>
+
+<pre>fun functionname (index, par1, par2)
+ {
+  if (index == 1)
+   return par1;
+  else
+   return par2;
+ }</pre>
+
+<p>Functions have local variables but if a global one exists, that is 
+used instead. You can force the use of a local even though a global 
+already exists (and vice versa) by using the "local" and "global" 
+hashes, e.g. </p>
+
+<pre>val = 1;             #global val = 1
+fun functionname ()
+ {
+  val = 2;           #global val = 2   (global exists, so is used)
+  local.val = 3;     #local  val = 3   (explicitly uses the local)
+  val = 4;           #local  val = 4   (local exists, so is used)
+  mval = 5;          #local mval = 5   (neither global nor local exist, so a local is created)
+ }</pre>
+
+<h1 id="plymouthinteraction">Plymouth Interaction</h1>
+
+<p>There are two basic Plymouth objects: Image and Sprite. </p>
+
+<h2 id="plymouthimages">Plymouth Images</h2>
+
+<p>To create a new image you need to supply the filename of the image within the theme image directory to Image, e.g. </p>
+
+<pre>box_image = Image ("box.png");
+logo_image = Image ("special://logo");   # "special://logo" is a special keyword which finds the logo image</pre>
+
+<p>You can also create images from text. These are useful to show text messages, e.g. </p>
+
+<pre>warning_image = Image.Text ("System running FSCK. This may take some time");</pre>
+
+<p>The default is white text color, but you can supply additional 
+parameters of: red, green, blue, alpha, fontname and alignment. Default 
+font is "Sans 12" and default alignment is "left". Alignement is only 
+useful for multi-line text, and its possible values are "left", 
+"center", or "right". </p>
+
+<pre>warning_image = Image.Text ("I feel faded", 0.8, 0.8, 0.8, 0.8, "Fixed");</pre>
+
+<p>The width and height of an image can be attained using GetWidth and GetHeight, e.g. </p>
+
+<pre>logo_area = logo_image.GetWidth() * logo_image.GetHeight();</pre>
+
+<p>An image can be rotated or scaled using Rotate and Scale, e.g. </p>
+
+<pre>upside_down_logo_image = logo_image.Rotate (3.1415); # the second paramiter is the angle in radians
+fat_logo_image = logo_image.Scale (logo_image.GetWidth() * 2 , logo_image.GetHeight ()) # make the image twice the width</pre>
+
+<h2 id="plymouthsprites">Plymouth Sprites</h2>
+
+<p>To place an image on the screen, we use sprites. </p>
+
+<p>To create a new sprite call Sprite, then set the image using SetImage, e.g. </p>
+
+<pre>my_sprite = Sprite ();
+my_sprite.SetImage (fat_logo_image);</pre>
+
+<p>You can also set the image while creating the sprite by supplying it to the constructor e.g. </p>
+
+<pre>my_sprite = Sprite (fat_logo_image);</pre>
+
+<p>The default placement of a new sprite is at the top left corner of the screen (at 0,0). To change the position call SetX and SetY, e.g. </p>
+
+<pre>my_sprite.SetX (100);
+my_sprite.SetY (200);</pre>
+
+<p>If there are multiple sprites it us useful to decide which sprite 
+should be shown above other. This is controlled using the Z component, 
+the sprite with higher the Z is drawn on top. </p>
+
+<pre>background_sprite.SetZ (-10);
+foreground_sprite.SetZ (10);</pre>
+
+<p>To set X, Y and Z in one call you can use SetPosition </p>
+
+<pre>logo_sprite.Setposition(100, 100, 0); # place at X=100, Y=100, Z=0</pre>
+
+<p>SetOpacity can make sprites transparent (the default opacity is solid 1) or even invisible when set to 0 , e.g. </p>
+
+<pre>faded_sprite.SetOpacity (0.5);
+invisible_sprite.SetOpacity (0);</pre>
+
+<p>It is also possible to get the X/Y/Z/Opcaity/Image properties of a sprite. </p>
+
+<pre>sprite.SetOpacity(sprite.GetOpacity()/2);
+sprite.SetPosition(sprite.GetX()+1, sprite.Gety()+1, sprite.GetZ());
+sprite.SetImage(sprite.GetImage().Rotate(0.1));</pre>
+
+<p>Knowing the size of the window can be useful to position sprites. This can be reached using Window.GetWidth and Window.GetHeight, e.g. </p>
+
+<pre>centred_sprite.SetX (Window.GetWidth ()  / 2 - centred_sprite.GetImage().GetWidth()  / 2);
+centred_sprite.SetY (Window.GetHeight () / 2 - centred_sprite.GetImage().GetHeight() / 2);</pre>
+
+<p>If the sprites do not fully cover the whole window, some of the 
+sprite background will be exposed. To set the background colours use Window.SetBackground{Top,Bottom}Color. These take Red, Green and Blue values between 0 and 1, e.g. </p>
+
+<pre>Window.SetBackgroundTopColor (0, 0, 1);           # Nice blue on top of the screen fading to
+Window.SetBackgroundBottomColor (0.8, 0.2, 0.1);  # an equally nice brown on the bottom</pre>
+
+<h2 id="plymouthcallbacks">Plymouth Callbacks</h2>
+
+<p>Calling Plymouth.SetRefreshFunction with a function will set that function to be called up to 50 times every second, e.g. </p>
+
+<pre>fun refresh_callback ()
+{
+ time++;
+}
+Plymouth.SetRefreshFunction (refresh_callback);</pre>
+
+<p>Other callbacks which can be hooked onto are: </p>
+
+<ul>
+<li>Plymouth.SetBootProgressFunction: the 
+callback function is called with two numbers, time spent booting so far 
+and the progress (between 0 and 1) </li>
+<li>Plymouth.SetRootMountedFunction: the callback function is called when a new root is mounted </li>
+<li>Plymouth.SetKeyboardInputFunction: the callback function is called with a string containing a new character entered on the keyboard </li>
+<li>Plymouth.SetUpdateStatusFunction: the callback function is called with the new boot status string </li>
+<li>Plymouth.SetDisplayPasswordFunction: the callback 
+function is called when the display should display a password dialogue. 
+First arg is prompt string, the second is the number of bullets. </li>
+<li>Plymouth.SetDisplayQuestionFunction: the callback 
+function is called when the display should display a question dialogue. 
+First arg is prompt string, the second is the entry contents. </li>
+<li>Plymouth.SetDisplayNormalFunction: the callback function is called when the display should return to normal </li>
+<li>Plymouth.SetMessageFunction: the callback function is called when new message should be displayed. First arg is message to display. 
+e.g. </li>
+</ul>
+
+<pre>fun progress_callback (time, progress)
+{
+ progress_status = "We have waited " + time + "seconds and we are "+ (progress * 100) + "% though";
+ ...
+}
+Plymouth.SetBootProgressFunction (progress_callback);</pre>
+
+<p>To determine the mode of operation plymouth was started in use Plymouth.GetMode which returns a string of one of: "boot", "shutdown", "suspend", "resume" or unknown. </p>
+
+<pre>if (Plymouth.GetMode () == "suspend")
+{
+ ShowSuspendBackground();
+}</pre>
+
+<h2 id="mathematicsfunctions">Mathematics Functions</h2>
+
+<p>There are some basic mathematics functions to  </p>
+
+<ul>
+<li>Math.Abs: Absolute (positive) of a number </li>
+<li>Math.Min: The smaller of two numbers </li>
+<li>Math.Max: The greater of two numbers </li>
+<li>Math.Clamp: Takes 3 numbers, value, min and max. Function forces 
+the value to be between min and max, otherwise either min or max are 
+returned. </li>
+<li>Math.Pi: The value of Pi (3.14159...) </li>
+<li>Math.Cos: Cosine function </li>
+<li>Math.Sin: Sine function </li>
+<li>Math.Tan: Tangent function </li>
+<li>Math.ATan2: Arc tangent function taking 2 values (see "man atan2") </li>
+<li>Math.Sqrt: Square root </li>
+<li>Math.Int: Returns the rounded down integer. </li>
+<li>Math.Random: Returns a pseudo random number between 0 and 1. </li>
+</ul>
+
+</div>
+
+
+
+
+
+</div>
+
+<div id="footer" class="pagefooter">
+
+<div id="pageinfo">
+
+
+
+
+
+
+
+
+
+
+
+<div class="pagedate">
+Last edited <span class="date">Sat 18 May 2013 05:44:18 PM PDT</span>
+<!-- Created <span class="date">Sat 18 May 2013 05:44:18 PM PDT</span> -->
+</div>
+
+</div>
+
+
+<!-- from www -->
+</div>
+
+</div>
+
+
+
+</body></html>
