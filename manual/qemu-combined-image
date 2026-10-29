@@ -8,7 +8,7 @@ SYNOPSIS
 DESCRIPTION
     Takes three previously generated build.sh stages from DIR/i386-pc,
     DIR/x86_64-efi and DIR/arm64-efi. Creates exactly one new 2 GiB raw
-    disk file at DIR-OUTPUT/m-boot-combined.raw; an existing output is
+    disk file at OUTPUT-DIR/m-boot-combined.raw; an existing output is
     never overwritten. The image uses GPT and contains:
        1   EF02   10 MiB        BIOS Boot Partition, no filesystem
        2   EF00   512 MiB       EFI System Partition, FAT32

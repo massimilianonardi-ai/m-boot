@@ -9,7 +9,8 @@ Usage: install.sh --stage DIR --esp DIR --data DIR [--apply] [--allow-directory]
 
 Without --apply: show an installation plan, make NO changes.
 --apply: copy only into missing EFI/BOOT/BOOT*.EFI and m/boot/loader paths.
-         Existing EFI files are NEVER overwritten. An existing external\n         loader directory is reused only when its content is identical.
+         Existing EFI files are NEVER overwritten. An existing external
+         loader directory is reused only when its content is identical.
 --allow-directory: allow ordinary directories rather than mounted vfat/exfat
          filesystems (for disposable staging/tests only, not a bootable install).
 
@@ -139,4 +140,4 @@ then
   cp -R -- "$source_loader" "$loader_dir" || fail "failed to stage external loader at $loader_dir (may be partial)" 34
 fi
 cp -- "$source_efi" "$boot_file" || fail "failed to write EFI boot image at $boot_file (loader may be present)" 35
-printf 'm-boot install: copied EFI image and external loader; no device sectors were written\n'
+printf 'm-boot install: installed new EFI image; external loader copied or verified unchanged; no sectors written\n'
