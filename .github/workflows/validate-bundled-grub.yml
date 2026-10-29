@@ -101,3 +101,44 @@ jobs:
           sudo ./tests/qemu-combined-test.sh --output "$RUNNER_TEMP/m-boot-normal-path" --prepare-only
           test -s "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
           sgdisk --verify "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
+
+  portable-newer-host:
+    name: Native portable GRUB 2.12 on newer Ubuntu ($ matrix.arch)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ubuntu:26.04
+    timeout-minutes: 20
+    steps:
+      - name: Install ordinary host utilities, but NO GRUB
+        run: |
+          set -eu
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ca-certificates tar xz-utils coreutils diffutils
+          test "$(uname -m)" = '${{ matrix.arch }}'
+          if command -v grub-mkimage >/dev/null 2>&1; then
+            echo 'unexpected host GRUB: this must prove the bundled tools are standalone' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - name: Cross-build all firmware targets with packaged native toolchain
+        run: |
+          set -eu
+          ./tools/grub-mkimage --version | grep -F '2.12-1ubuntu7.3'
+          ./tools/grub-script-check --version | grep -F '2.12-1ubuntu7.3'
+          for target in i386-pc x86_64-efi arm64-efi
+          do
+            ./build.sh --target "$target" --output "$RUNNER_TEMP/portable-stages"
+          done
+          test -s "$RUNNER_TEMP/portable-stages/i386-pc/bios/core.img"
+          test -s "$RUNNER_TEMP/portable-stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI"
+          test -s "$RUNNER_TEMP/portable-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
+          diff -rq "$RUNNER_TEMP/portable-stages/i386-pc/data/m/boot/loader" \
+                   "$RUNNER_TEMP/portable-stages/arm64-efi/data/m/boot/loader"
