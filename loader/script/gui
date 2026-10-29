@@ -1,13 +1,17 @@
-
 export gfxmode
 export theme
 export theme_name
 export current_theme_dir
 
-set theme_name=default
+if [ -z "$theme_name" ]
+then
+  set theme_name=default
+fi
 
-set gfxmode=1920x1080,1920x1200,1600x1050,1600x1200,1280x720,1280x800,1024x768,800x600x24,640x480
-#set gfxmode=auto
+if [ -z "$gfxmode" ]
+then
+  set gfxmode=1920x1080,1920x1200,1600x1050,1600x1200,1280x720,1280x800,1024x768,800x600x24,640x480
+fi
 
 if [ "$grub_platform" == "efi" ]
 then
@@ -17,17 +21,32 @@ else
   insmod vbe
   insmod vga
 fi
-insmod gfxterm
-terminal_output gfxterm
 
-insmod png
-insmod tga
-insmod jpeg
+# A missing graphics backend or theme must not prevent text-menu booting.
+if insmod gfxterm && terminal_output gfxterm
+then
+  insmod png
+  insmod tga
+  insmod jpeg
 
-insmod gfxmenu
-set current_theme_dir=$theme_dir/$theme_name
-set theme=$current_theme_dir/theme.cfg
-source $current_theme_dir/fonts.cfg
+  set current_theme_dir="$theme_dir/$theme_name"
+  if [ -f "$current_theme_dir/theme.cfg" ]
+  then
+    insmod gfxmenu
+    set theme="$current_theme_dir/theme.cfg"
+    if [ -f "$current_theme_dir/fonts.cfg" ]
+    then
+      source "$current_theme_dir/fonts.cfg"
+    fi
+  else
+    set theme=""
+    echo "m-boot: graphical theme unavailable; using unthemed menu"
+  fi
+else
+  set theme=""
+  terminal_output console
+  echo "m-boot: graphics unavailable; using console menu"
+fi
 
 function setTheme
 {

@@ -1,0 +1,21 @@
+# This menu must work with no external filesystem mounted.
+set default=0
+set timeout=-1
+
+menuentry "Retry m-boot device discovery" --hotkey=r {
+  configfile "(memdisk)/init"
+}
+
+menuentry "List available devices" --hotkey=l {
+  ls
+  echo "Press Escape to return to the menu."
+  sleep --interruptible 30
+}
+
+menuentry "Reboot" --hotkey=b {
+  reboot
+}
+
+menuentry "Shutdown" --hotkey=s {
+  halt
+}
