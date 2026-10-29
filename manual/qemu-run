@@ -1,0 +1,37 @@
+NAME
+    qemu-run.sh - start a prepared m-boot raw disk image under QEMU
+
+SYNOPSIS
+    tests/qemu-run.sh --target x86_64-efi|arm64-efi|i386-pc --image FILE
+                      [--firmware-code FILE --firmware-vars FILE] [--headless]
+
+DESCRIPTION
+    Launches QEMU with a new, temporary UEFI variable store for UEFI
+    targets. The guest disk runs in QEMU snapshot mode: guest writes are
+    not persisted to the original raw image. Interactive graphical output
+    is used by default, because the embedded GRUB menu uses its console
+    display and is NOT guaranteed to be visible on a serial-only terminal.
+
+FIRMWARE
+    x86_64-efi: qemu-system-x86_64 and a matching OVMF CODE/VARS pair.
+    arm64-efi:  qemu-system-aarch64 and a matching AAVMF/edk2 CODE/VARS pair.
+    i386-pc:    qemu-system-x86_64 and the QEMU BIOS (no external firmware).
+    Common system locations are searched; pass both firmware paths if absent.
+    No NVRAM template is altered by the test.
+
+EXAMPLES
+    tests/qemu-run.sh --target x86_64-efi \
+      --image ./qemu-out/m-boot-x86_64-efi-loader.raw
+    tests/qemu-run.sh --target arm64-efi \
+      --image ./qemu-out/m-boot-arm64-efi-recovery.raw \
+      --firmware-code /usr/share/AAVMF/AAVMF_CODE.fd \
+      --firmware-vars /usr/share/AAVMF/AAVMF_VARS.fd
+
+LIMITATIONS
+    The command only launches QEMU; it does not judge boot success.
+    --headless hides the graphical GRUB menu and is useful only for a
+    configured serial/debugging workflow. Inspect the actual menu before
+    reporting a working bootstrap or recovery.
+
+SEE ALSO
+    manual/qemu-image, manual/qemu-test

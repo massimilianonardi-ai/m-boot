@@ -1,0 +1,44 @@
+NAME
+    qemu-test.sh - build, create and launch m-boot QEMU smoke-test images
+
+SYNOPSIS
+    tests/qemu-test.sh --target TARGET --output DIR
+                       [--scenario loader|recovery|both] [--stage DIR]
+                       [--modules-dir DIR] [--grub-mkimage PATH]
+                       [--bios-modules-dir DIR]
+                       [--firmware-code FILE --firmware-vars FILE]
+                       [--prepare-only] [--headless]
+
+DESCRIPTION
+    Runs build.sh (unless --stage is supplied) and creates a disposable
+    raw GPT image for each requested scenario using tests/qemu-image.sh.
+    By default it launches each image interactively via tests/qemu-run.sh.
+    When --scenario both is selected (the default), close the loader QEMU
+    guest to proceed to the recovery guest. Root is required for virtual
+    loop device and filesystem creation; no physical device is modified.
+    --prepare-only builds both images without opening a QEMU window.
+
+EXPECTED RESULTS
+    loader:   GRUB reaches the externally staged 'm-loader TEST' menu;
+              selecting inspection shows root, prefix and devices.
+    recovery: GRUB reaches the embedded recovery menu because the external
+              /m/boot/loader/init file is absent.
+    BIOS:     requires --bios-modules-dir and grub-bios-setup. Unlike the
+              production installer, the test embeds BIOS boot sectors only
+              into a verified temporary file-backed loop device.
+
+EXAMPLES
+    sudo tests/qemu-test.sh --target x86_64-efi --output ./qemu-out
+    sudo tests/qemu-test.sh --target arm64-efi --output ./qemu-arm \
+      --modules-dir /usr/lib/grub/arm64-efi --prepare-only
+    sudo tests/qemu-test.sh --target i386-pc --output ./qemu-bios \
+      --bios-modules-dir /usr/lib/grub/i386-pc
+
+LIMITATIONS
+    Requires a Linux host with the real GRUB target modules and QEMU tools.
+    A QEMU process starting is not proof that firmware boot succeeded;
+    inspect both boot scenarios. No physical hardware/USB/Thunderbolt test
+    is performed. An existing build stage or image is not overwritten.
+
+SEE ALSO
+    manual/qemu-image, manual/qemu-run, manual/build, manual/install
