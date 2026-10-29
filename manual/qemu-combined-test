@@ -36,26 +36,23 @@ EXAMPLES
     sudo tests/qemu-combined-test.sh --stages ./prebuilt-stages \
       --output ./combined-qemu --target all
 
-ARM64 STAGE STORED IN GIT
-    When the native GitHub Actions ARM64 build has succeeded, use the
-    checked-in prebuilt/m-boot-arm64-efi.tar.xz rather than requiring
-    a temporary GitHub Actions artifact download:
+UEFI MODULES AND STAGES STORED IN GIT
+    The repository tracks complete x86_64-efi and arm64-efi module/stage
+    archives. No time-limited GitHub artifact download is required.
+    After git pull, verify the two package SHA256 files and extract them
+    to a common STAGES directory:
+        sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256
         sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
         mkdir -p ./qemu-combined/stages
+        tar -xJf prebuilt/m-boot-x86_64-efi.tar.xz \
+          -C ./qemu-combined/stages
         tar -xJf prebuilt/m-boot-arm64-efi.tar.xz \
           -C ./qemu-combined/stages
-    Build i386-pc and x86_64-efi into the same stage parent, and run
-    qemu-combined-test.sh --stages ./qemu-combined/stages.
-    The checked-in stage must match the tested source revision.
+    Build the i386-pc stage into the same parent and run this command
+    with --stages ./qemu-combined/stages. Cross-architecture GRUB stages
+    are already built, so their native build modules are not required
+    on the QEMU test host. See manual/build and prebuilt/README.md.
 
-ARM64 BUILD ON GITHUB
-    If arm64-efi modules are absent locally, run the workflow
-    .github/workflows/build-grub-arm64.yml on the native GitHub ARM64
-    runner and download its m-boot-arm64-efi artifact. Extract it to
-    STAGES/ so STAGES/arm64-efi/stage-info exists. Then build the other
-    two stages locally into the SAME STAGES/ and use --stages STAGES.
-    Keep the three loader/ trees from the same m-boot source revision.
-    The workflow artifact expires after 30 days unless downloaded.
 
 REQUIREMENTS
     Linux root to prepare virtual GPT/mount filesystems, three target

@@ -1,0 +1,88 @@
+name: Build GRUB x86_64 UEFI stage
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-grub-x86_64.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  x86_64:
+    name: GRUB x86_64 EFI stage and complete modules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out m-boot
+        uses: actions/checkout@v4
+
+      - name: Install GRUB x86_64 modules and build tools
+        run: |
+          set -eu
+          test "$(uname -m)" = x86_64
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            grub-common grub-efi-amd64-bin
+          test -s /usr/lib/grub/x86_64-efi/normal.mod
+          test -s /usr/lib/grub/x86_64-efi/exfat.mod
+          grub-mkimage --version
+          grub-script-check --version
+          dpkg-query -W grub-common grub-efi-amd64-bin
+
+      - name: Build x86_64 EFI using the real m-boot builder
+        run: |
+          set -eu
+          ./build.sh --target x86_64-efi --output ./dist \
+            --modules-dir /usr/lib/grub/x86_64-efi
+          test -s dist/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI
+          test -f dist/x86_64-efi/data/m/boot/loader/init
+          test "$(sed -n '2p' dist/x86_64-efi/stage-info)" = "target=x86_64-efi"
+          file dist/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI
+
+      - name: Bundle complete x86_64 module directory and provenance
+        run: |
+          set -eu
+          mkdir -p dist/grub-modules/x86_64-efi
+          cp -a /usr/lib/grub/x86_64-efi/. dist/grub-modules/x86_64-efi/
+          printf 'source_commit=%s\nrunner=%s\n' "$GITHUB_SHA" "$(uname -m)" > dist/x86_64-build-info.txt
+          dpkg-query -W grub-common grub-efi-amd64-bin >> dist/x86_64-build-info.txt
+          (cd dist && sha256sum x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI > BOOTX64.EFI.sha256)
+          test -s dist/grub-modules/x86_64-efi/normal.mod
+          test -s dist/grub-modules/x86_64-efi/exfat.mod
+
+      - name: Publish stage and modules as Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-x86_64-efi
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      # Commit only outputs built from a workflow-file push, never from manual dispatch.
+      # An archive-only commit cannot retrigger this workflow (push.paths filter).
+      - name: Persist x86_64 package in repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          mkdir -p prebuilt
+          tar -C dist -cJf prebuilt/m-boot-x86_64-efi.tar.xz \
+            x86_64-efi grub-modules x86_64-build-info.txt BOOTX64.EFI.sha256
+          test -s prebuilt/m-boot-x86_64-efi.tar.xz
+          tar -tJf prebuilt/m-boot-x86_64-efi.tar.xz >/dev/null
+          sha256sum prebuilt/m-boot-x86_64-efi.tar.xz \
+            > prebuilt/m-boot-x86_64-efi.tar.xz.sha256
+          sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- prebuilt/m-boot-x86_64-efi.tar.xz \
+            prebuilt/m-boot-x86_64-efi.tar.xz.sha256
+          if git diff --cached --quiet
+          then
+            echo 'x86_64 archive already matches the committed package'
+          else
+            git commit -m 'Store built GRUB x86_64 EFI stage and modules in repository'
+            git push origin HEAD:main
+          fi

@@ -31,45 +31,45 @@ EXAMPLES
     ./build.sh --target arm64-efi --output ./dist \
       --modules-dir /usr/lib/grub/arm64-efi
 
-PERSISTENT ARM64 PACKAGE IN GIT
-    The native Linux ARM64 GitHub Actions runner commits a compressed
-    native build package into the repository on workflow-file updates:
+PERSISTENT EFI MODULE PACKAGES IN GIT
+    The project stores the complete GRUB module directories and their
+    corresponding m-boot EFI stages as Git-tracked compressed archives:
+
+        prebuilt/m-boot-x86_64-efi.tar.xz
         prebuilt/m-boot-arm64-efi.tar.xz
-        prebuilt/m-boot-arm64-efi.tar.xz.sha256
-    This tracked file is available through normal git pull and does not
-    expire like GitHub Actions artifacts. To extract a full ARM64 stage
-    and its modules into the combined QEMU stage directory:
+
+    Each archive has an adjacent .sha256 file. Contents of each archive:
+        <target>/                 complete build stage and EFI executable
+        grub-modules/<target>/    complete target GRUB module directory
+        <platform>-build-info.txt source commit and Ubuntu package versions
+        BOOT*.EFI.sha256          checksum of the built EFI executable
+
+    Use one common directory for both stages and modules:
         git pull --ff-only
+        sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256
         sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
         mkdir -p ./qemu-combined/stages
+        tar -xJf prebuilt/m-boot-x86_64-efi.tar.xz \
+          -C ./qemu-combined/stages
         tar -xJf prebuilt/m-boot-arm64-efi.tar.xz \
           -C ./qemu-combined/stages
-    This provides both qemu-combined/stages/arm64-efi and
-    qemu-combined/stages/grub-modules/arm64-efi. The archive includes
-    arm64-build-info.txt with the original source revision and packages.
-    On future workflow_dispatch runs, the GitHub Actions artifact is still
-    produced, but the tracked archive is not silently replaced.
 
-GITHUB ARM64 ARTIFACT
-    For hosts without arm64-efi GRUB modules, the GitHub Actions workflow
-    .github/workflows/build-grub-arm64.yml runs on ubuntu-24.04-arm.
-    It runs this actual build.sh for arm64-efi and uploads the artifact
-    m-boot-arm64-efi containing:
-        arm64-efi/                  complete build stage (BOOTAA64.EFI)
-        grub-modules/arm64-efi/    target GRUB modules
-        arm64-build-info.txt      source revision and package versions
-        BOOTAA64.EFI.sha256       checksum of the generated EFI image
-
-    Download the artifact ZIP from the workflow run (Actions UI) and extract
-    it into a stage parent directory. A GitHub CLI example is:
-        gh run download RUN_ID -R massimilianonardi-ai/m-boot \
-          -n m-boot-arm64-efi -D ./qemu-combined/stages
-
-    To rebuild on an x86_64 Linux host using the extracted modules:
+    To rebuild any target with the unpacked module directory:
+        ./build.sh --target x86_64-efi --output ./other-stages \
+          --modules-dir ./qemu-combined/stages/grub-modules/x86_64-efi
         ./build.sh --target arm64-efi --output ./other-stages \
           --modules-dir ./qemu-combined/stages/grub-modules/arm64-efi
-    Do not put the newly built stage over an existing stage directory.
-    GRUB modules must match the GRUB tools used to build the image.
+
+    The corresponding GitHub Actions workflows build these packages on
+    native ubuntu-24.04 (x86_64) and ubuntu-24.04-arm (ARM64) runners:
+        .github/workflows/build-grub-x86_64.yml
+        .github/workflows/build-grub-arm64.yml
+    They also publish temporary Actions artifacts, but the tracked
+    archives remain available with an ordinary git pull. The archives
+    are versioned third-party GRUB binaries, not native source modules.
+    Source/package provenance and usage details: prebuilt/README.md.
+    GRUB modules and grub-mkimage should use compatible GRUB versions.
+
 
 NOTES
     The tool checks for required GRUB modules but does not prove that firmware
