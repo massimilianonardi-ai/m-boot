@@ -27,7 +27,7 @@ grub-modules/<TARGET>/           complete Ubuntu GRUB target directory
 <architecture>-build-info.txt   source_commit, runner architecture, package versions
 BOOT*.EFI.sha256 (UEFI targets)  checksum of the compiled EFI image
 core.img.sha256 (i386-pc)       checksum of the compiled BIOS core image
-                               includes grub-modules/i386-pc/boot.img
+                               (BIOS boot.img is in grub-modules/i386-pc/)
 ```
 
 Usage from the repository root:
