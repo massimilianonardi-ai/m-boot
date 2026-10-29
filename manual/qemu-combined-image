@@ -41,8 +41,7 @@ REQUIREMENTS
 
 EXAMPLE
     sudo tests/qemu-combined-image.sh \
-      --stages ./combined-stages --output ./combined-results \
-      # --bios-modules-dir is optional with the tracked archive
+      --stages ./combined-stages --output ./combined-results
 
 
 LIMITATIONS
