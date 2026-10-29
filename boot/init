@@ -57,6 +57,8 @@ then
   if [ -f "($m_loader_disk)$m_loader_init" ]
   then
     set root="$m_loader_disk"
+    # Dynamic GRUB modules are resolved under $prefix/<cpu>-<platform>/.
+    set prefix="($m_loader_disk)$m_loader_dir"
     echo "m-boot: executing m-loader on disk=($m_loader_disk), path='$m_loader_init'"
     if source "$m_loader_init"
     then
@@ -64,6 +66,7 @@ then
     else
       echo "m-boot: m-loader execution error."
       set m_loader_disk=""
+      set prefix="($init_disk)"
     fi
   else
     echo "m-boot: selected m-loader is no longer accessible."

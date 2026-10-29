@@ -63,6 +63,13 @@ image. The host still needs `grub-bios-setup` and compatible GRUB tools.
 Manual extraction below remains useful for precompiled-stage inspection and
 explicitly chosen overrides.
 
+The build uses the archive's target modules to compile the essential core
+image, then stages the complete module directories for **all three** GRUB
+targets at `data/m/boot/loader/<TARGET>/`. When the embedded init finds
+the loader, it changes `prefix` to `(<device>)/m/boot/loader`; subsequent
+`insmod` requests are served from its `<TARGET>/` subdirectory. The
+existing GUI and future OS boot functionality are intentionally dynamic.
+
 The unpacked GRUB modules may also be supplied explicitly to `build.sh`
 using `--modules-dir ./qemu-combined/stages/grub-modules/<TARGET>`.
 Use a compatible `grub-mkimage` version. Keep the source commit from the

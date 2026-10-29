@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - build.sh
+      - boot/**
+      - grub-modules-bios.cfg
+      - grub-modules-efi.cfg
       - tests/qemu-combined-image.sh
       - tests/qemu-combined-test.sh
       - loader/**
@@ -42,11 +45,60 @@ jobs:
           test -s "$RUNNER_TEMP/m-boot-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
           for target in i386-pc x86_64-efi arm64-efi
           do
-            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/theme/default/theme.cfg"
-            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/theme/default/images/background.jpg"
-            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/menu/gui"
-            grep -Fq "gfxterm" "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/menu/gui"
+            loader="$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader"
+            test -s "$loader/theme/default/theme.cfg"
+            test -s "$loader/theme/default/images/background.jpg"
+            test -s "$loader/menu/gui"
+            for module_target in i386-pc x86_64-efi arm64-efi
+            do
+              test -s "$loader/$module_target/normal.mod"
+              test -s "$loader/$module_target/gfxterm.mod"
+              test -s "$loader/$module_target/gfxmenu.mod"
+              test -s "$loader/$module_target/exfat.mod"
+            done
           done
+          first="$RUNNER_TEMP/m-boot-stages/i386-pc/data/m/boot/loader"
+          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/x86_64-efi/data/m/boot/loader"
+          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/arm64-efi/data/m/boot/loader"
+          if grep -E '^(gfxterm|gfxmenu|efi_gop|vbe|png|jpeg|tga)
+      - name: Explicit override cannot silently fall back
+        run: |
+          set -eu
+          if ./build.sh --target arm64-efi --output "$RUNNER_TEMP/invalid-target" --modules-dir "$RUNNER_TEMP/nonexistent-modules"
+          then
+            echo 'ERROR: nonexistent explicit module override was accepted' >&2
+            exit 1
+          fi
+      - name: Reject corrupted tracked package without host fallback
+        run: |
+          set -eu
+          archive=prebuilt/m-boot-i386-pc.tar.xz
+          cp "$archive" "$RUNNER_TEMP/i386-pc-package-backup.tar.xz"
+          trap 'cp "$RUNNER_TEMP/i386-pc-package-backup.tar.xz" "$archive"' EXIT
+          printf 'corruption' >> "$archive"
+          if ./build.sh --target i386-pc --output "$RUNNER_TEMP/rejected-corrupt-package"
+          then
+            echo 'ERROR: corrupt repository package silently accepted' >&2
+            exit 1
+          fi
+      - name: Prepare disposable combined GPT image
+        run: |
+          set -eu
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-utils gdisk dosfstools exfatprogs
+          sudo ./tests/qemu-combined-test.sh --stages "$RUNNER_TEMP/m-boot-stages" --output "$RUNNER_TEMP/m-boot-disk" --prepare-only
+          test -s "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
+          sgdisk --verify "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
+      - name: Verify the ordinary no-stage operator path
+        run: |
+          set -eu
+          sudo ./tests/qemu-combined-test.sh --output "$RUNNER_TEMP/m-boot-normal-path" --prepare-only
+          test -s "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
+          sgdisk --verify "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
+ grub-modules-bios.cfg grub-modules-efi.cfg
+          then
+            echo 'ERROR: GUI module embedded in bootstrap list' >&2
+            exit 1
+          fi
       - name: Explicit override cannot silently fall back
         run: |
           set -eu

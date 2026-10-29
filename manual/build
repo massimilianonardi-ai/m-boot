@@ -22,10 +22,18 @@ DESCRIPTION
     or corrupted bundled archive is a hard failure (not host fallback).
     Only modules are taken from the package: the EFI/BIOS image and the
     loader stage are rebuilt from CURRENT repository source files.
-    The bootstrap embeds GRUB graphics/font/image and target video modules
-    (i386-pc: vbe; EFI: efi_gop), making the external theme independent
-    of host-side GRUB module directories at boot time. The external stage
-    contains loader/theme/default and loader/menu/gui from the repository.
+    The essential modules embedded into BIOS/UEFI images are defined by
+    grub-modules-bios.cfg and grub-modules-efi.cfg, respectively. Graphics,
+    GUI and OS boot modules are not embedded and load only after discovery.
+    Every stage contains ALL THREE target module trees in
+    data/m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/, copied from the
+    checksum-verified GRUB archives (or from --modules-dir for the selected
+    build target). This ensures the external loader tree is identical
+    across all three ordinary stages and can be reused by both EFI images.
+    boot/init switches GRUB prefix from (memdisk) to
+    (<selected GRUB device>)/m/boot/loader before sourcing loader/init.
+    Missing-loader recovery stays independent in (memdisk).
+    The existing loader/theme/default and loader/menu/gui remain external.
 
 TARGETS
     x86_64-efi: DIR/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI

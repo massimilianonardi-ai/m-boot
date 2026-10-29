@@ -27,7 +27,7 @@ then
   source "$current_theme_dir/fonts.cfg"
 fi
 
-# These video modules are embedded by build.sh for each target.
+# Video and GUI modules are dynamically loaded from the selected loader prefix.
 if [ "$grub_platform" = efi ]
 then
   insmod efi_gop

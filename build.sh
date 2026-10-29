@@ -11,6 +11,8 @@ Build one GRUB target into DIR/TARGET without changing an existing stage.
 UEFI stages contain esp/EFI/BOOT/BOOT*.EFI and data/m/boot/loader/.
 BIOS stages contain bios/core.img and data/m/boot/loader/; BIOS installation
 requires a separate, explicitly authorized disk-boot procedure.
+Embedded modules: grub-modules-bios.cfg or grub-modules-efi.cfg.
+Runtime modules: /m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/.
 Modules: --modules-dir > verified prebuilt archive > installed host modules.
 Bundled modules require a compatible grub-mkimage version.
 HELP
@@ -129,17 +131,25 @@ else
   printf 'm-boot build: warning: grub-script-check unavailable; GRUB script syntax was not checked\n' >&2
 fi
 
-# Keep bootstrap/recovery independent of modules on the data filesystem.
-set -- normal memdisk tar configfile regexp test search search_fs_file \
-  search_fs_uuid search_label echo ls sleep reboot halt terminal \
-  part_gpt part_msdos fat exfat ext2 ntfs iso9660 \
-  gfxterm gfxmenu font video video_fb bitmap bitmap_scale png jpeg tga
+# The embedded bootstrap/recovery depends only on these target-specific
+# essential modules; GUI, discovery and OS boot modules remain external.
 if [ "$target" = i386-pc ]
 then
-  set -- "$@" biosdisk vbe
+  embedded_modules="$root/grub-modules-bios.cfg"
 else
-  set -- "$@" efi_gop
+  embedded_modules="$root/grub-modules-efi.cfg"
 fi
+[ -f "$embedded_modules" ] || fail "missing essential module list: $embedded_modules" 37
+set --
+while IFS= read -r module || [ -n "$module" ]
+do
+  case "$module" in
+    ''|'#'*) continue ;;
+    *[!a-zA-Z0-9_]*) fail "invalid module in $embedded_modules: $module" 38 ;;
+  esac
+  set -- "$@" "$module"
+done < "$embedded_modules"
+[ "$#" -gt 0 ] || fail "empty essential module list: $embedded_modules" 39
 
 for module
 do
@@ -153,6 +163,29 @@ output=$(CDPATH= cd -- "$output" && pwd -P) || fail 'cannot resolve output direc
 stage=$(mktemp -d "$output/.m-boot-build.XXXXXXXX") || fail 'cannot create temporary staging directory' 16
 mkdir -p "$stage/data/m/boot/loader" || fail 'cannot create data staging tree' 17
 cp -R -- "$root/loader/." "$stage/data/m/boot/loader/" || fail 'cannot stage external loader' 18
+
+# insmod reads "$prefix/<target>/<module>.mod". Publish ALL three complete
+# architecture directories in every stage: the ESPs share one common loader.
+loader_modules="$stage/data/m/boot/loader"
+for module_target in i386-pc x86_64-efi arm64-efi
+do
+  [ ! -e "$loader_modules/$module_target" ] && [ ! -L "$loader_modules/$module_target" ] || fail "loader source already has module tree: $module_target" 40
+  if [ "$module_target" = "$target" ]
+  then
+    cp -R -- "$modules_dir" "$loader_modules/$module_target" || fail "cannot stage selected modules for $module_target" 41
+  else
+    module_archive="$root/prebuilt/m-boot-$module_target.tar.xz"
+    module_manifest="$module_archive.sha256"
+    [ -f "$module_archive" ] && [ ! -L "$module_archive" ] || fail "missing runtime module archive: $module_archive" 42
+    [ -f "$module_manifest" ] && [ ! -L "$module_manifest" ] || fail "missing runtime module checksum: $module_manifest" 43
+    command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum required for runtime module integrity' 44
+    (CDPATH= cd -- "$root" && sha256sum -c "prebuilt/m-boot-$module_target.tar.xz.sha256") || fail "runtime module integrity failed: $module_archive" 45
+    tar -xJf "$module_archive" -C "$stage" "grub-modules/$module_target" || fail "cannot extract modules for $module_target" 46
+    mv -- "$stage/grub-modules/$module_target" "$loader_modules/$module_target" || fail "cannot stage modules for $module_target" 47
+  fi
+  [ -s "$loader_modules/$module_target/normal.mod" ] || fail "incomplete runtime module tree: $module_target" 48
+done
+rmdir "$stage/grub-modules" 2>/dev/null || :
 
 # The memdisk contains ONLY the embedded boot scripts, not the external loader.
 (CDPATH= cd -- "$root/boot" && tar -cf "$stage/memdisk.tar" init recovery) || fail 'cannot create embedded memdisk TAR' 19
