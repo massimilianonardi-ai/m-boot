@@ -11,6 +11,17 @@ DESCRIPTION
     stages the external loader/ directory beneath data/m/boot/loader/.
     Does not install, partition, format, or write to a block device.
     Fails rather than replacing an existing DIR/TARGET.
+    By default resolves GRUB modules in this order:
+      1. Explicit --modules-dir (no fallback if missing).
+      2. The project's prebuilt/m-boot-<target>.tar.xz (SHA256 verified,
+         extracted into a private temporary directory, then removed).
+      3. A standard host GRUB target module directory, when no bundled
+         package is present.
+    The bundled modules require grub-mkimage with the same GRUB package
+    version recorded in the archive's build-info metadata. An incomplete
+    or corrupted bundled archive is a hard failure (not host fallback).
+    Only modules are taken from the package: the EFI/BIOS image and the
+    loader stage are rebuilt from CURRENT repository source files.
 
 TARGETS
     x86_64-efi: DIR/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI
@@ -21,14 +32,17 @@ TARGETS
 OPTIONS
     --target        Required GRUB image format.
     --output        Required parent of new staged build directories.
-    --modules-dir   Optional target-specific GRUB module directory; required
-                    when cross-target modules aren't in a standard location.
+    --modules-dir   Explicit target-specific module directory, overriding the
+                    tracked archive and all host module locations.
     --grub-mkimage  Optional explicit GRUB image generator executable/path.
     --help          Print usage.
 
 EXAMPLES
     ./build.sh --target x86_64-efi --output ./dist
-    ./build.sh --target arm64-efi --output ./dist \
+    ./build.sh --target arm64-efi --output ./dist
+    ./build.sh --target i386-pc --output ./dist
+    ./build.sh --target x86_64-efi --output ./dist
+    ./build.sh --target arm64-efi --output ./alternate \
       --modules-dir /usr/lib/grub/arm64-efi
 
 PERSISTENT GRUB TARGET MODULE PACKAGES IN GIT
@@ -46,6 +60,8 @@ PERSISTENT GRUB TARGET MODULE PACKAGES IN GIT
         BOOT*.EFI.sha256          checksum of built EFI executable (UEFI)
         core.img.sha256          checksum of built BIOS core (i386-pc)
 
+    For normal builds no extraction is needed. Manual extraction remains
+    useful for reusing the archived precompiled stages or inspecting files.
     Use one common directory for all stages and modules:
         git pull --ff-only
         sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256

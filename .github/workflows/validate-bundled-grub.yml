@@ -1,0 +1,56 @@
+name: Validate bundled GRUB module builds
+
+on:
+  push:
+    paths:
+      - build.sh
+      - tests/qemu-combined-image.sh
+      - tests/qemu-combined-test.sh
+      - .github/workflows/validate-bundled-grub.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GRUB tools (without target module packages)
+        run: |
+          set -eu
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends grub-common grub2-common
+          grub-mkimage --version
+          grub-bios-setup --version
+      - name: Syntax and real GRUB builds using Git archives
+        run: |
+          set -eu
+          sh -n build.sh tests/qemu-combined-image.sh tests/qemu-combined-test.sh
+          for target in i386-pc x86_64-efi arm64-efi
+          do
+            echo "===== standalone bundled build: $target ====="
+            ./build.sh --target "$target" --output "$RUNNER_TEMP/m-boot-stages"
+            test -f "$RUNNER_TEMP/m-boot-stages/$target/stage-info"
+            test "$(sed -n '2p' "$RUNNER_TEMP/m-boot-stages/$target/stage-info")" = "target=$target"
+          done
+          test -s "$RUNNER_TEMP/m-boot-stages/i386-pc/bios/core.img"
+          test -s "$RUNNER_TEMP/m-boot-stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI"
+          test -s "$RUNNER_TEMP/m-boot-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
+      - name: Explicit override cannot silently fall back
+        run: |
+          set -eu
+          if ./build.sh --target arm64-efi --output "$RUNNER_TEMP/invalid-target" --modules-dir "$RUNNER_TEMP/nonexistent-modules"
+          then
+            echo 'ERROR: nonexistent explicit module override was accepted' >&2
+            exit 1
+          fi
+      - name: Prepare disposable combined GPT image
+        run: |
+          set -eu
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-utils gdisk dosfstools exfatprogs
+          sudo ./tests/qemu-combined-test.sh --stages "$RUNNER_TEMP/m-boot-stages" --output "$RUNNER_TEMP/m-boot-disk" --prepare-only
+          test -s "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
+          sgdisk --verify "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"

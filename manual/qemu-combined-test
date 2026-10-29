@@ -10,7 +10,8 @@ SYNOPSIS
 
 DESCRIPTION
     Without --stages, calls build.sh three times for the BIOS, UEFI x64
-    and UEFI ARM64 targets. Target-specific modules may be supplied
+    and UEFI ARM64 targets, using the three tracked module archives
+    automatically when present and verified. Target-specific modules may be supplied
     explicitly using the --modules-* options. With --stages, uses
     prebuilt target directories from other compatible Linux build hosts.
     Calls qemu-combined-image.sh to create one new raw GPT disk.
@@ -51,9 +52,11 @@ THREE TARGET MODULE SETS AND STAGES STORED IN GIT
           -C ./qemu-combined/stages
         tar -xJf prebuilt/m-boot-i386-pc.tar.xz \
           -C ./qemu-combined/stages
-    All three stages are already built. Invoke this command with
-    --stages ./qemu-combined/stages --bios-modules-dir
-    ./qemu-combined/stages/grub-modules/i386-pc. The BIOS path still
+    All three stages are already built, so --stages remains available.
+    The regular invocation with only --output builds fresh stages from
+    the current source and verified archives. --bios-modules-dir is
+    optional because boot.img is also resolved from the verified BIOS
+    archive. The BIOS path still
     requires the host command grub-bios-setup (grub2-common); no target
     module packages need to be installed on the host. See manual/build and prebuilt/README.md.
 

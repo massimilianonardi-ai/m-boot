@@ -20,6 +20,12 @@ DESCRIPTION
     identical before adding a second EFI binary. The i386-pc bootstrap is
     written with grub-bios-setup ONLY to the loop device backed by the
     fresh temporary raw file, after verifying the loop backing path.
+    By default the i386-pc boot.img comes from the tracked verified
+    prebuilt/m-boot-i386-pc.tar.xz, temporarily extracted alongside the
+    test image workspace; the host grub-bios-setup version is checked
+    against its recorded GRUB package version. Explicit
+    --bios-modules-dir takes precedence; without the archive, a standard
+    host module directory remains a fallback.
 
 REQUIREMENTS
     Linux root for loopback, partition formatting and mounting; matching
@@ -33,7 +39,8 @@ REQUIREMENTS
 EXAMPLE
     sudo tests/qemu-combined-image.sh \
       --stages ./combined-stages --output ./combined-results \
-      --bios-modules-dir ./combined-stages/grub-modules/i386-pc
+      # --bios-modules-dir is optional with the tracked archive
+
 
 LIMITATIONS
     This script creates a boot candidate, not a tested boot. Check the

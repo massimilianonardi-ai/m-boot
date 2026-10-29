@@ -11,6 +11,8 @@ Build one GRUB target into DIR/TARGET without changing an existing stage.
 UEFI stages contain esp/EFI/BOOT/BOOT*.EFI and data/m/boot/loader/.
 BIOS stages contain bios/core.img and data/m/boot/loader/; BIOS installation
 requires a separate, explicitly authorized disk-boot procedure.
+Modules: --modules-dir > verified prebuilt archive > installed host modules.
+Bundled modules require a compatible grub-mkimage version.
 HELP
 }
 
@@ -28,6 +30,23 @@ target=
 output=
 modules_dir=
 mkimage=grub-mkimage
+modules_tmp=
+stage=
+
+# One cleanup path covers both verified module extraction and image staging.
+cleanup()
+{
+  if [ -n "$stage" ]
+  then
+    rm -rf -- "$stage"
+  fi
+  if [ -n "$modules_tmp" ]
+  then
+    rm -rf -- "$modules_tmp"
+  fi
+}
+trap cleanup 0
+trap 'exit 130' 1 2 3 15
 
 while [ "$#" -gt 0 ]
 do
@@ -65,16 +84,40 @@ command -v "$mkimage" >/dev/null 2>&1 || fail "GRUB image builder is unavailable
 
 if [ -z "$modules_dir" ]
 then
-  for candidate in "/usr/lib/grub/$target" "/usr/local/lib/grub/$target" "/usr/lib64/grub/$target"
-  do
-    if [ -d "$candidate" ]
-    then
-      modules_dir=$candidate
-      break
-    fi
-  done
+  archive="$root/prebuilt/m-boot-$target.tar.xz"
+  manifest="$archive.sha256"
+  if [ -e "$archive" ] || [ -e "$manifest" ] || [ -L "$archive" ] || [ -L "$manifest" ]
+  then
+    [ -f "$archive" ] && [ ! -L "$archive" ] || fail "missing or invalid tracked GRUB archive: $archive" 29
+    [ -f "$manifest" ] && [ ! -L "$manifest" ] || fail "missing or invalid tracked GRUB checksum: $manifest" 30
+    command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum required for bundled GRUB modules' 31
+    (CDPATH= cd -- "$root" && sha256sum -c "prebuilt/m-boot-$target.tar.xz.sha256") || fail "integrity check failed for $archive" 32
+
+    modules_tmp=$(mktemp -d "${TMPDIR:-/tmp}/m-boot-grub.XXXXXXXX") || fail 'cannot create private GRUB extraction directory' 33
+    case "$target" in
+      x86_64-efi) info=x86_64-build-info.txt ;;
+      arm64-efi) info=arm64-build-info.txt ;;
+      i386-pc) info=i386-pc-build-info.txt ;;
+    esac
+    tar -xJf "$archive" -C "$modules_tmp" "grub-modules/$target" "$info" || fail "cannot extract verified GRUB modules for $target" 34
+    modules_dir="$modules_tmp/grub-modules/$target"
+    [ -f "$modules_tmp/$info" ] || fail "missing GRUB package provenance: $info" 35
+    archive_version=$(awk '$1 == "grub-common" { print $2 }' "$modules_tmp/$info")
+    mkimage_version=$("$mkimage" --version | awk 'END { print $NF }')
+    [ -n "$archive_version" ] && [ "$mkimage_version" = "$archive_version" ] || fail "GRUB version mismatch: archive=$archive_version, grub-mkimage=$mkimage_version; provide a compatible toolchain or explicit --modules-dir" 36
+    printf 'm-boot build: verified bundled GRUB modules target=%s version=%s\n' "$target" "$archive_version"
+  else
+    for candidate in "/usr/lib/grub/$target" "/usr/local/lib/grub/$target" "/usr/lib64/grub/$target"
+    do
+      if [ -d "$candidate" ]
+      then
+        modules_dir=$candidate
+        break
+      fi
+    done
+  fi
 fi
-[ -n "$modules_dir" ] && [ -d "$modules_dir" ] || fail "GRUB $target modules not installed; provide --modules-dir" 11
+[ -n "$modules_dir" ] && [ -d "$modules_dir" ] || fail "GRUB $target modules unavailable; provide --modules-dir or tracked prebuilt archive" 11
 
 if command -v grub-script-check >/dev/null 2>&1
 then
@@ -105,8 +148,6 @@ output=$(CDPATH= cd -- "$output" && pwd -P) || fail 'cannot resolve output direc
 [ ! -e "$output/$target" ] && [ ! -L "$output/$target" ] || fail "stage already exists (will not overwrite): $output/$target" 15
 
 stage=$(mktemp -d "$output/.m-boot-build.XXXXXXXX") || fail 'cannot create temporary staging directory' 16
-trap 'rm -rf -- "$stage"' 0
-trap 'exit 130' 1 2 3 15
 mkdir -p "$stage/data/m/boot/loader" || fail 'cannot create data staging tree' 17
 cp -R -- "$root/loader/." "$stage/data/m/boot/loader/" || fail 'cannot stage external loader' 18
 
@@ -133,5 +174,7 @@ printf 'm-boot-stage-v1\ntarget=%s\n' "$target" > "$stage/stage-info" || fail 'c
 rm -f "$stage/memdisk.tar" || fail 'cannot clean build TAR from stage' 25
 [ ! -e "$output/$target" ] && [ ! -L "$output/$target" ] || fail 'stage destination appeared during build' 26
 mv -- "$stage" "$output/$target" || fail 'cannot publish build stage' 27
+stage=
+cleanup
 trap - 0 1 2 3 15
 printf 'm-boot build: staged %s in %s\n' "$target" "$output/$target"

@@ -49,6 +49,20 @@ module directory includes `boot.img` and may be passed explicitly as
 `core.img` is not bootable merely by copying it to a filesystem: BIOS
 installation requires boot-sector and GPT BIOS Boot Partition embedding.
 
+Normal builds use the tracked archives automatically: `./build.sh --target
+<TARGET> --output DIR` verifies the SHA256, checks its recorded GRUB
+version against `grub-mkimage`, extracts only the module directory to a
+temporary location, then regenerates the boot stage from the CURRENT
+project source files. Explicit `--modules-dir` bypasses archive selection.
+A corrupt or incomplete archive is an error, not a request for host fallback.
+
+`tests/qemu-combined-test.sh --output DIR` builds all three target stages
+this way; `tests/qemu-combined-image.sh` independently resolves and verifies
+the bundled BIOS `boot.img` for installation into its disposable disk
+image. The host still needs `grub-bios-setup` and compatible GRUB tools.
+Manual extraction below remains useful for precompiled-stage inspection and
+explicitly chosen overrides.
+
 The unpacked GRUB modules may also be supplied explicitly to `build.sh`
 using `--modules-dir ./qemu-combined/stages/grub-modules/<TARGET>`.
 Use a compatible `grub-mkimage` version. Keep the source commit from the

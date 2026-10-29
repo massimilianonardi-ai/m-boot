@@ -13,6 +13,7 @@ Uses only a temporary raw file/loop device, never a physical disk operand.
 GPT layout: 10 MiB BIOS Boot (EF02), 512 MiB FAT32 ESP (both UEFI
 architectures), remainder exFAT (one shared external loader).
 Requires Linux root to mount the two image filesystems.
+BIOS modules: --bios-modules-dir > verified tracked archive > host directory.
 HELP
 }
 
@@ -56,18 +57,33 @@ done
 [ -s "$stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI" ] || fail 'BOOTX64.EFI absent' 12
 [ -s "$stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI" ] || fail 'BOOTAA64.EFI absent' 13
 [ "$(id -u)" -eq 0 ] || fail 'root required for loopback filesystems only' 14
+bios_from_archive=no
 if [ -z "$bios_modules" ]
 then
-  for candidate in /usr/lib/grub/i386-pc /usr/local/lib/grub/i386-pc /usr/lib64/grub/i386-pc
-  do
-    if [ -f "$candidate/boot.img" ]
-    then
-      bios_modules=$candidate
-      break
-    fi
-  done
+  archive="$root/prebuilt/m-boot-i386-pc.tar.xz"
+  manifest="$archive.sha256"
+  if [ -e "$archive" ] || [ -e "$manifest" ] || [ -L "$archive" ] || [ -L "$manifest" ]
+  then
+    [ -f "$archive" ] && [ ! -L "$archive" ] || fail "missing or invalid bundled BIOS archive: $archive" 47
+    [ -f "$manifest" ] && [ ! -L "$manifest" ] || fail "missing or invalid BIOS checksum: $manifest" 48
+    command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum required for bundled BIOS modules' 49
+    (CDPATH= cd -- "$root" && sha256sum -c prebuilt/m-boot-i386-pc.tar.xz.sha256) || fail "BIOS archive integrity check failed: $archive" 50
+    bios_from_archive=yes
+  else
+    for candidate in /usr/lib/grub/i386-pc /usr/local/lib/grub/i386-pc /usr/lib64/grub/i386-pc
+    do
+      if [ -f "$candidate/boot.img" ]
+      then
+        bios_modules=$candidate
+        break
+      fi
+    done
+  fi
 fi
-[ -n "$bios_modules" ] && [ -f "$bios_modules/boot.img" ] || fail 'BIOS boot.img absent; pass --bios-modules-dir' 15
+if [ "$bios_from_archive" = no ]
+then
+  [ -n "$bios_modules" ] && [ -f "$bios_modules/boot.img" ] || fail 'BIOS boot.img absent; pass --bios-modules-dir or use tracked archive' 15
+fi
 for program in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt grub-bios-setup
 do
   command -v "$program" >/dev/null 2>&1 || fail "missing command: $program" 16
@@ -107,6 +123,18 @@ cleanup()
 }
 trap cleanup 0
 trap 'exit 130' 1 2 3 15
+
+if [ "$bios_from_archive" = yes ]
+then
+  tar -xJf "$archive" -C "$work" grub-modules/i386-pc i386-pc-build-info.txt || fail 'cannot extract verified BIOS boot.img and provenance' 51
+  bios_modules="$work/grub-modules/i386-pc"
+  [ -s "$bios_modules/boot.img" ] || fail 'bundled BIOS boot.img is missing' 52
+  archive_version=$(awk '$1 == "grub-common" { print $2 }' "$work/i386-pc-build-info.txt")
+  bios_setup_version=$(grub-bios-setup --version | awk 'END { print $NF }')
+  [ -n "$archive_version" ] && [ "$bios_setup_version" = "$archive_version" ] || fail "GRUB BIOS setup version mismatch: archive=$archive_version, host=$bios_setup_version" 53
+  printf 'm-boot qemu-combined-image: verified bundled BIOS boot.img version=%s\n' "$archive_version"
+fi
+
 mkdir "$work/esp" "$work/data" || fail 'cannot create mountpoints' 23
 raw="$work/disk.raw"
 qemu-img create -f raw "$raw" 2G || fail 'qemu-img create failed' 24
