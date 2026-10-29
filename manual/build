@@ -1,0 +1,40 @@
+NAME
+    build.sh - build one staged m-boot GRUB image and external loader tree
+
+SYNOPSIS
+    ./build.sh --target x86_64-efi|arm64-efi|i386-pc --output DIR
+               [--modules-dir DIR] [--grub-mkimage PATH]
+
+DESCRIPTION
+    Standalone Linux build: needs grub-mkimage with target-specific modules
+    and tar. Uses the source boot/ files to produce an embedded memdisk, then
+    stages the external loader/ directory beneath data/m/boot/loader/.
+    Does not install, partition, format, or write to a block device.
+    Fails rather than replacing an existing DIR/TARGET.
+
+TARGETS
+    x86_64-efi: DIR/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI
+    arm64-efi:  DIR/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
+    i386-pc:   DIR/i386-pc/bios/core.img (not directly bootable by copying)
+    Every target includes data/m/boot/loader/ and stage-info.
+
+OPTIONS
+    --target        Required GRUB image format.
+    --output        Required parent of new staged build directories.
+    --modules-dir   Optional target-specific GRUB module directory; required
+                    when cross-target modules aren't in a standard location.
+    --grub-mkimage  Optional explicit GRUB image generator executable/path.
+    --help          Print usage.
+
+EXAMPLES
+    ./build.sh --target x86_64-efi --output ./dist
+    ./build.sh --target arm64-efi --output ./dist \
+      --modules-dir /usr/lib/grub/arm64-efi
+
+NOTES
+    The tool checks for required GRUB modules but does not prove that firmware
+    will boot the resulting image. Test with GRUB/QEMU before deployment.
+    The legacy target-build.sh remains untouched.
+
+SEE ALSO
+    manual/install

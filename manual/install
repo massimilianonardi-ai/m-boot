@@ -1,0 +1,39 @@
+NAME
+    install.sh - safely copy a staged m-boot UEFI image to prepared mounts
+
+SYNOPSIS
+    ./install.sh --stage DIR --esp DIR --data DIR [--apply]
+                 [--allow-directory]
+
+DESCRIPTION
+    This standalone Linux installer accepts two existing, separate mountpoints
+    (vfat ESP and exFAT data partition) and a build.sh stage for x86_64-efi
+    or arm64-efi. It never formats, partitions, calls dd or grub-install, or
+    writes to raw block devices. Existing EFI fallback filenames or an
+    existing m/boot/loader directory cause failure rather than replacement.
+    The default mode is a no-write plan. --apply is required to copy files.
+    If a file copy fails after writing begins, partial files may remain;
+    the error explicitly reports that possibility.
+
+OPTIONS
+    --stage            Required build.sh output directory for one target.
+    --esp              Required already-mounted FAT32 ESP root directory.
+    --data             Required already-mounted exFAT data root directory.
+    --apply            Explicitly copy files (default: dry run).
+    --allow-directory  Bypass mount/fs checks for disposable test directories
+                       ONLY; this is not real-media validation.
+    --help             Print usage.
+
+EXAMPLES
+    ./install.sh --stage ./dist/x86_64-efi --esp /mnt/esp --data /mnt/data
+    ./install.sh --stage ./dist/x86_64-efi --esp /mnt/esp --data /mnt/data --apply
+
+LIMITATIONS
+    This tool does not install BIOS boot sectors. i386-pc stages require a
+    separately reviewed disk installation procedure, not a file copy.
+    It does not replace or update an existing installation; replacement is
+    a future task requiring deliberate backup and confirmation semantics.
+    Preparation of the initial partitions is a separate safety-gated task.
+
+SEE ALSO
+    manual/build
