@@ -17,6 +17,12 @@ DESCRIPTION
          extracted into a private temporary directory, then removed).
       3. A standard host GRUB target module directory, when no bundled
          package is present.
+    When present, the verified native tool archive
+    prebuilt/m-boot-grub-tools-linux-<host>.tar.xz provides grub-mkimage
+    and grub-script-check, together with their non-glibc shared libraries.
+    Host tools are extracted temporarily, never installed into the OS.
+    A corrupt tool archive is an error, not a fallback to system GRUB.
+    An explicit --grub-mkimage overrides this automatic selection.
     The bundled modules require grub-mkimage with the same GRUB package
     version recorded in the archive's build-info metadata. An incomplete
     or corrupted bundled archive is a hard failure (not host fallback).
@@ -46,7 +52,8 @@ OPTIONS
     --output        Required parent of new staged build directories.
     --modules-dir   Explicit target-specific module directory, overriding the
                     tracked archive and all host module locations.
-    --grub-mkimage  Optional explicit GRUB image generator executable/path.
+    --grub-mkimage  Explicit GRUB image generator path, overriding native
+                    versioned tools and the system utility lookup.
     --help          Print usage.
 
 EXAMPLES

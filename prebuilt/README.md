@@ -1,6 +1,24 @@
 # GRUB target modules and prebuilt boot stages
 
-This directory contains **three Git-tracked, complete GRUB target module sets**.
+This directory contains **three Git-tracked, complete GRUB target module sets**,
+plus separately versioned host-native GRUB utility archives for Linux
+x86_64 and aarch64. The host tool packages are built on native Ubuntu 24.04
+GitHub Actions runners, and contain grub-mkimage and grub-script-check with
+non-glibc shared library dependencies and package provenance. The x86_64
+bundle also includes grub-bios-setup; no native ARM64 BIOS installer has
+yet been validated. The thin tools/grub-tool launcher validates SHA256
+then extracts/executes the matching host binary in a private temporary
+directory, leaving host GRUB unchanged. The host's glibc must be at least
+as recent as Ubuntu 24.04.
+
+Host-native tool package names:
+- m-boot-grub-tools-linux-x86_64.tar.xz
+- m-boot-grub-tools-linux-aarch64.tar.xz
+
+Every package has a sidecar .sha256. No GRUB installation or downgrade is
+necessary when building with these packages.
+
+
 They are not part of the RumiAI-authored GRUB scripts and do not replace
 `build.sh`. Each archive also includes the boot-stage output built by
 `build.sh` from the repository revision recorded in its metadata.

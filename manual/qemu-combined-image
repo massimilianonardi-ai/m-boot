@@ -25,8 +25,12 @@ DESCRIPTION
     relative to that directory. The host GRUB module tree is untouched.
     By default the i386-pc boot.img comes from the tracked verified
     prebuilt/m-boot-i386-pc.tar.xz, temporarily extracted alongside the
-    test image workspace; the host grub-bios-setup version is checked
-    against its recorded GRUB package version. Explicit
+    test image workspace; the selected grub-bios-setup version is checked
+    against its recorded GRUB package version. The native bundled x86_64
+    toolchain contains grub-bios-setup and is preferred when present.
+    Native ARM64 grub-bios-setup is NOT yet bundled; ARM64 BIOS GPT
+    preparation still needs a compatible BIOS setup implementation.
+    Explicit
     --bios-modules-dir takes precedence; without the archive, a standard
     host module directory remains a fallback.
 

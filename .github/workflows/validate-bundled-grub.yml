@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - build.sh
+      - tools/**
+      - prebuilt/m-boot-grub-tools-linux-*.tar.xz
+      - prebuilt/m-boot-grub-tools-linux-*.tar.xz.sha256
       - boot/**
       - grub-modules-bios.cfg
       - grub-modules-efi.cfg

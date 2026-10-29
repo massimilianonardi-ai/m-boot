@@ -57,6 +57,17 @@ done
 [ -s "$stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI" ] || fail 'BOOTX64.EFI absent' 12
 [ -s "$stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI" ] || fail 'BOOTAA64.EFI absent' 13
 [ "$(id -u)" -eq 0 ] || fail 'root required for loopback filesystems only' 14
+
+bios_setup=grub-bios-setup
+case "$(uname -m)" in
+  x86_64|aarch64)
+    host_arch=$(uname -m)
+    tool_archive="$root/prebuilt/m-boot-grub-tools-linux-$host_arch.tar.xz"
+    if [ -e "$tool_archive" ] || [ -L "$tool_archive" ] || [ -e "$tool_archive.sha256" ] || [ -L "$tool_archive.sha256" ]
+    then
+      bios_setup="$root/tools/grub-bios-setup"
+    fi ;;
+esac
 bios_from_archive=no
 if [ -z "$bios_modules" ]
 then
@@ -84,10 +95,11 @@ if [ "$bios_from_archive" = no ]
 then
   [ -n "$bios_modules" ] && [ -f "$bios_modules/boot.img" ] || fail 'BIOS boot.img absent; pass --bios-modules-dir or use tracked archive' 15
 fi
-for program in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt grub-bios-setup
+for program in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt
 do
   command -v "$program" >/dev/null 2>&1 || fail "missing command: $program" 16
 done
+command -v "$bios_setup" >/dev/null 2>&1 || fail "GRUB BIOS setup utility unavailable: $bios_setup" 57
 [ -d "$output" ] || mkdir -p -- "$output" || fail "cannot create output directory: $output" 17
 output=$(CDPATH= cd -- "$output" && pwd -P) || fail 'cannot resolve output directory' 18
 [ "$output" != / ] && [ "$output" != "$stages" ] || fail 'invalid output directory' 19
@@ -130,7 +142,7 @@ then
   bios_modules="$work/grub-modules/i386-pc"
   [ -s "$bios_modules/boot.img" ] || fail 'bundled BIOS boot.img is missing' 52
   archive_version=$(awk '$1 == "grub-common" { print $2 }' "$work/i386-pc-build-info.txt")
-  bios_setup_version=$(grub-bios-setup --version | awk 'END { print $NF }')
+  bios_setup_version=$("$bios_setup" --version | awk 'END { print $NF }')
   [ -n "$archive_version" ] && [ "$bios_setup_version" = "$archive_version" ] || fail "GRUB BIOS setup version mismatch: archive=$archive_version, host=$bios_setup_version" 53
   printf 'm-boot qemu-combined-image: verified bundled BIOS boot.img version=%s\n' "$archive_version"
 fi
@@ -178,7 +190,7 @@ esp_mounted=no
 mkdir "$work/bios-setup" || fail 'cannot create BIOS setup workspace' 54
 cp -- "$bios_modules/boot.img" "$work/bios-setup/boot.img" || fail 'cannot stage BIOS boot.img' 55
 cp -- "$stages/i386-pc/bios/core.img" "$work/bios-setup/core.img" || fail 'cannot stage BIOS core.img' 56
-grub-bios-setup --directory="$work/bios-setup" \
+"$bios_setup" --directory="$work/bios-setup" \
   --boot-image=boot.img --core-image=core.img "$loop" || fail 'BIOS embedding in virtual image failed' 43
 losetup -d "$loop" || fail 'loop detach failed' 44
 loop=

@@ -15,6 +15,8 @@ Embedded modules: grub-modules-bios.cfg or grub-modules-efi.cfg.
 Runtime modules: /m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/.
 Modules: --modules-dir > verified prebuilt archive > installed host modules.
 Bundled modules require a compatible grub-mkimage version.
+Automatically use checksummed host-native GRUB tools from prebuilt/ if present.
+Explicit --grub-mkimage overrides the default toolchain.
 HELP
 }
 
@@ -32,6 +34,8 @@ target=
 output=
 modules_dir=
 mkimage=grub-mkimage
+mkimage_explicit=no
+script_checker=grub-script-check
 modules_tmp=
 stage=
 
@@ -59,7 +63,7 @@ do
         --target) target=$2 ;;
         --output) output=$2 ;;
         --modules-dir) modules_dir=$2 ;;
-        --grub-mkimage) mkimage=$2 ;;
+        --grub-mkimage) mkimage=$2; mkimage_explicit=yes ;;
       esac
       shift 2 ;;
     --help|-h) usage; exit 0 ;;
@@ -82,6 +86,22 @@ do
 done
 
 command -v tar >/dev/null 2>&1 || fail 'tar is required' 9
+
+# Host-native, checksum-verified GRUB tools take priority if tracked in Git.
+# An explicit --grub-mkimage preserves caller ownership of tool selection.
+if [ "$mkimage_explicit" = no ]
+then
+  case "$(uname -m)" in
+    x86_64|aarch64)
+      host_arch=$(uname -m)
+      tool_archive="$root/prebuilt/m-boot-grub-tools-linux-$host_arch.tar.xz"
+      if [ -e "$tool_archive" ] || [ -L "$tool_archive" ] || [ -e "$tool_archive.sha256" ] || [ -L "$tool_archive.sha256" ]
+      then
+        mkimage="$root/tools/grub-mkimage"
+        script_checker="$root/tools/grub-script-check"
+      fi ;;
+  esac
+fi
 command -v "$mkimage" >/dev/null 2>&1 || fail "GRUB image builder is unavailable: $mkimage" 10
 
 if [ -z "$modules_dir" ]
@@ -121,14 +141,14 @@ then
 fi
 [ -n "$modules_dir" ] && [ -d "$modules_dir" ] || fail "GRUB $target modules unavailable; provide --modules-dir or tracked prebuilt archive" 11
 
-if command -v grub-script-check >/dev/null 2>&1
+if command -v "$script_checker" >/dev/null 2>&1
 then
   for script in "$root/boot/bootstrap-memdisk.sh" "$root/boot/init" "$root/boot/recovery" "$root/loader/init" "$root/loader/menu/gui"
   do
-    grub-script-check "$script" || fail "GRUB script syntax check failed: $script" 28
+    "$script_checker" "$script" || fail "GRUB script syntax check failed using $script_checker: $script" 28
   done
 else
-  printf 'm-boot build: warning: grub-script-check unavailable; GRUB script syntax was not checked\n' >&2
+  printf 'm-boot build: warning: %s unavailable; GRUB script syntax not checked\n' "$script_checker" >&2
 fi
 
 # The embedded bootstrap/recovery depends only on these target-specific
