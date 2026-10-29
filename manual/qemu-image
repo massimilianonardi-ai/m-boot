@@ -9,7 +9,7 @@ DESCRIPTION
     On a Linux test host running as root, creates a fresh 768 MiB raw image
     using qemu-img and sgdisk; attaches only that file through losetup.
     The image contains a FAT32 ESP and an exFAT data partition. BIOS/GPT
-    additionally contains a small BIOS Boot Partition. The script formats
+    additionally contains a 10 MiB BIOS Boot Partition (type EF02). The script formats
     and mounts partitions inside the image, then installs the chosen test
     scenario. It never receives or opens a physical target disk pathname.
     Output file: DIR/m-boot-TARGET-SCENARIO.raw; never replaced silently.

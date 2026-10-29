@@ -101,7 +101,7 @@ raw="$work/disk.raw"
 qemu-img create -f raw "$raw" 768M || fail 'qemu-img could not create raw image' 23
 if [ "$target" = i386-pc ]
 then
-  sgdisk --clear --new=1:2048:+4M --typecode=1:EF02 \
+  sgdisk --clear --new=1:2048:+10M --typecode=1:EF02 \
     --new=2:0:+256M --typecode=2:EF00 \
     --new=3:0:0 --typecode=3:0700 "$raw" || fail 'cannot create BIOS GPT partitions' 24
   esp_part=2
