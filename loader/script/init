@@ -1,63 +1,61 @@
 
 export root
 export prefix
-export core_dir
-export root_dir
 
-set root="(memdisk)"
-set prefix="(memdisk)"
-set core_dir="(memdisk)"
-set root_dir=""
+export init_disk
+export boot_disk
 
-set prefix="/m/boot/loader"
-set root_dir="/m/boot/loader"
+export m_loader_disk
+export m_loader_dir
+export m_loader_init
 
-set root_conf="$core_dir/root.conf"
-set env_file="$root_dir/environment"
+set root="memdisk"
+set prefix="($root)"
 
-if [ -f "$root_conf" ]
+set init_disk="$root"
+set m_loader_recovery="($init_disk)/recovery"
+
+set boot_disk=""
+
+set m_loader_disk=""
+set m_loader_dir="/m/boot/loader"
+set m_loader_init="$m_loader_dir/init"
+
+if [ -n "$cmdpath" ]
 then
-  source "$root_conf"
-elif [ -n "$cmdpath" ]
+  if regexp --set boot_disk '^\(([^)]*)\)' "$cmdpath"
+  then
+    echo "m-boot: using firmware boot device ($boot_disk)"
+  else
+    echo "m-boot: using cmdpath=$cmdpath detected boot device=($boot_disk) returned error"
+  fi
+fi
+
+if [ -n "$boot_disk" ] && [ -f "($boot_disk)$m_loader_init" ]
 then
-  regexp --set root '(\(.*\))' "$cmdpath"
+  set m_loader_disk="$boot_disk"
 else
-  search --no-floppy --file --set root "$env_file"
+  echo "m-boot: m-loader not found on firmware boot device, searching all devices..."
+  if search --no-floppy --file --set m_loader_disk "$m_loader_init"
+  then
+    echo "m-boot: found m-loader on disk=($m_loader_disk), path='$m_loader_init'"
+  else
+    echo "m-boot: m-loader cannot be found."
+    set m_loader_disk=""
+  fi
 fi
 
-export theme_dir
-
-if [ -d "$core_dir/theme" ]
+if [ -n "$m_loader_disk" ] && [ -f "($m_loader_disk)$m_loader_init" ]
 then
-  set theme_dir="$core_dir/theme"
+  set root="$m_loader_disk"
+  echo "m-boot: executing m-loader on disk=($m_loader_disk), path='$m_loader_init'"
+  if ! source "$m_loader_init"
+  then
+    echo "m-boot: m-loader execution error, executing recovery..."
+    set root="$init_disk"
+    source "$m_loader_recovery"
+  fi
 else
-  set theme_dir="$root_dir/theme"
+  echo "m-boot: no m-loader found, executing recovery..."
+  source "$m_loader_recovery"
 fi
-
-export boot_dir
-export system_dir
-
-export linux_dir
-export tools_dir
-export vm_dir
-export windows_dir
-
-set boot_dir="/m/boot"
-set system_dir="/m/sys"
-
-set linux_dir="$system_dir/linux"
-set tools_dir="$system_dir/tools"
-set vm_dir="$system_dir/vm"
-set windows_dir="$system_dir/windows"
-
-if [ -f "$env_file" ]
-then
-  load_env --file "$env_file" --skip-sig
-fi
-
-source "$core_dir/gui"
-
-export main
-
-set main="$core_dir/main"
-source "$main"
