@@ -1,0 +1,62 @@
+name: Build GRUB ARM64 stage
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-grub-arm64.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arm64:
+    name: GRUB ARM64 EFI stage and modules
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out m-boot
+        uses: actions/checkout@v4
+
+      - name: Install GRUB ARM64 modules and build tools
+        run: |
+          set -eu
+          test "$(uname -m)" = aarch64
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            grub-common grub-efi-arm64-bin
+          test -f /usr/lib/grub/arm64-efi/normal.mod
+          test -f /usr/lib/grub/arm64-efi/exfat.mod
+          grub-mkimage --version
+          grub-script-check --version
+          dpkg-query -W grub-common grub-efi-arm64-bin
+
+      - name: Build real ARM64 EFI stage
+        run: |
+          set -eu
+          ./build.sh --target arm64-efi --output ./dist \
+            --modules-dir /usr/lib/grub/arm64-efi
+          test -s dist/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
+          test -f dist/arm64-efi/data/m/boot/loader/init
+          test "$(sed -n '2p' dist/arm64-efi/stage-info)" = "target=arm64-efi"
+          file dist/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
+
+      - name: Bundle ARM64 module directory and provenance
+        run: |
+          set -eu
+          mkdir -p dist/grub-modules/arm64-efi
+          cp -a /usr/lib/grub/arm64-efi/. dist/grub-modules/arm64-efi/
+          printf 'source_commit=%s\nrunner=%s\n' "$GITHUB_SHA" "$(uname -m)" > dist/arm64-build-info.txt
+          dpkg-query -W grub-common grub-efi-arm64-bin >> dist/arm64-build-info.txt
+          (cd dist && sha256sum arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI > BOOTAA64.EFI.sha256)
+          test -s dist/grub-modules/arm64-efi/normal.mod
+          test -s dist/grub-modules/arm64-efi/exfat.mod
+
+      - name: Publish stage and GRUB modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-arm64-efi
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

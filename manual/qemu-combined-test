@@ -36,6 +36,15 @@ EXAMPLES
     sudo tests/qemu-combined-test.sh --stages ./prebuilt-stages \
       --output ./combined-qemu --target all
 
+ARM64 BUILD ON GITHUB
+    If arm64-efi modules are absent locally, run the workflow
+    .github/workflows/build-grub-arm64.yml on the native GitHub ARM64
+    runner and download its m-boot-arm64-efi artifact. Extract it to
+    STAGES/ so STAGES/arm64-efi/stage-info exists. Then build the other
+    two stages locally into the SAME STAGES/ and use --stages STAGES.
+    Keep the three loader/ trees from the same m-boot source revision.
+    The workflow artifact expires after 30 days unless downloaded.
+
 REQUIREMENTS
     Linux root to prepare virtual GPT/mount filesystems, three target
     GRUB module sets or prebuilt stages, i386-pc boot.img, GRUB BIOS

@@ -31,6 +31,27 @@ EXAMPLES
     ./build.sh --target arm64-efi --output ./dist \
       --modules-dir /usr/lib/grub/arm64-efi
 
+GITHUB ARM64 ARTIFACT
+    For hosts without arm64-efi GRUB modules, the GitHub Actions workflow
+    .github/workflows/build-grub-arm64.yml runs on ubuntu-24.04-arm.
+    It runs this actual build.sh for arm64-efi and uploads the artifact
+    m-boot-arm64-efi containing:
+        arm64-efi/                  complete build stage (BOOTAA64.EFI)
+        grub-modules/arm64-efi/    target GRUB modules
+        arm64-build-info.txt      source revision and package versions
+        BOOTAA64.EFI.sha256       checksum of the generated EFI image
+
+    Download the artifact ZIP from the workflow run (Actions UI) and extract
+    it into a stage parent directory. A GitHub CLI example is:
+        gh run download RUN_ID -R massimilianonardi-ai/m-boot \
+          -n m-boot-arm64-efi -D ./qemu-combined/stages
+
+    To rebuild on an x86_64 Linux host using the extracted modules:
+        ./build.sh --target arm64-efi --output ./other-stages \
+          --modules-dir ./qemu-combined/stages/grub-modules/arm64-efi
+    Do not put the newly built stage over an existing stage directory.
+    GRUB modules must match the GRUB tools used to build the image.
+
 NOTES
     The tool checks for required GRUB modules but does not prove that firmware
     will boot the resulting image. Test with GRUB/QEMU before deployment.
