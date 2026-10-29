@@ -1,0 +1,117 @@
+name: Build portable GRUB 2.12 host tools
+on:
+  push:
+    paths:
+      - .github/workflows/build-grub-toolchains.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install version-matched native host tools
+        run: |
+          set -eu
+          test "$(uname -m)" = '${ matrix.arch }}'
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends grub-common grub2-common
+          test "$(grub-mkimage --version | awk '{print $NF}')" = 2.12-1ubuntu7.3
+          command -v grub-script-check
+          if [ "$(uname -m)" = x86_64 ]; then command -v grub-bios-setup; fi
+      - name: Bundle native binaries and dependent non-glibc libraries
+        run: |
+          set -eu
+          mkdir -p dist/toolchain/bin dist/toolchain/lib
+          printf 'arch=%s\nversion=%s\nsource=Ubuntu 24.04 GRUB packages\n' \
+            "$(uname -m)" "$(grub-mkimage --version | awk '{print $NF}')" > dist/toolchain/provenance.txt
+          dpkg-query -W grub-common grub2-common >> dist/toolchain/provenance.txt
+          for tool in grub-mkimage grub-script-check grub-bios-setup
+          do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              test "$tool" = grub-bios-setup && test "$(uname -m)" = aarch64
+              continue
+            fi
+            binary=$(command -v "$tool")
+            cp -L "$binary" "dist/toolchain/bin/$tool"
+            chmod 755 "dist/toolchain/bin/$tool"
+            ldd "$binary" | awk '/ => \// {print $3} $1 ~ /^\// {print $1}' | while IFS= read -r lib
+            do
+              name=$(basename "$lib")
+              case "$name" in
+                libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*|libutil.so.*|ld-linux*|ld-musl*) continue ;;
+              esac
+              test -f "$lib"
+              if [ -e "dist/toolchain/lib/$name" ]; then
+                cmp -s "$lib" "dist/toolchain/lib/$name" || exit 1
+              else
+                cp -L "$lib" "dist/toolchain/lib/$name"
+              fi
+            done
+          done
+          test -x dist/toolchain/bin/grub-mkimage
+          test -x dist/toolchain/bin/grub-script-check
+          LD_LIBRARY_PATH="$PWD/dist/toolchain/lib" dist/toolchain/bin/grub-mkimage --version
+          LD_LIBRARY_PATH="$PWD/dist/toolchain/lib" dist/toolchain/bin/grub-script-check --version
+          if [ "$(uname -m)" = x86_64 ]; then
+            test -x dist/toolchain/bin/grub-bios-setup
+            LD_LIBRARY_PATH="$PWD/dist/toolchain/lib" dist/toolchain/bin/grub-bios-setup --version
+          fi
+      - name: Archive with SHA256
+        run: |
+          set -eu
+          archive="m-boot-grub-tools-linux-$(uname -m).tar.xz"
+          tar -C dist -cJf "$archive" toolchain
+          tar -tJf "$archive" >/dev/null
+          sha256sum "$archive" > "$archive.sha256"
+          sha256sum -c "$archive.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grub-tools-${ matrix.arch }}
+          path: |
+            m-boot-grub-tools-linux-*.tar.xz
+            m-boot-grub-tools-linux-*.tar.xz.sha256
+          if-no-files-found: error
+          retention-days: 30
+  persist:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: grub-tools-*
+          path: downloaded
+          merge-multiple: true
+      - name: Persist checksummed bundles (forward only)
+        run: |
+          set -eu
+          mkdir -p prebuilt
+          for arch in aarch64 x86_64
+          do
+            archive="m-boot-grub-tools-linux-$arch.tar.xz"
+            (cd downloaded && sha256sum -c "$archive.sha256")
+            cp "downloaded/$archive" "prebuilt/$archive"
+            sha256sum "prebuilt/$archive" > "prebuilt/$archive.sha256"
+            sha256sum -c "prebuilt/$archive.sha256"
+          done
+          git fetch origin main
+          git checkout -B main origin/main
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- prebuilt/m-boot-grub-tools-linux-*.tar.xz prebuilt/m-boot-grub-tools-linux-*.tar.xz.sha256
+          if ! git diff --cached --quiet; then
+            git commit -m 'Store native GRUB 2.12 tools for Linux ARM64 and x86_64'
+            git push origin HEAD:main
+          fi
