@@ -173,9 +173,13 @@ data_mounted=no
 umount "$work/esp" || fail 'ESP unmount failed' 41
 esp_mounted=no
 [ "$(losetup -n -O BACK-FILE "$loop")" = "$raw" ] || fail 'loop backing changed before BIOS setup' 42
-grub-bios-setup --directory="$bios_modules" \
-  --boot-image="$bios_modules/boot.img" \
-  --core-image="$stages/i386-pc/bios/core.img" "$loop" || fail 'BIOS embedding in virtual image failed' 43
+# grub-bios-setup resolves --boot-image and --core-image relative to --directory.
+# Stage both images in our disposable workspace; never mutate host module trees.
+mkdir "$work/bios-setup" || fail 'cannot create BIOS setup workspace' 54
+cp -- "$bios_modules/boot.img" "$work/bios-setup/boot.img" || fail 'cannot stage BIOS boot.img' 55
+cp -- "$stages/i386-pc/bios/core.img" "$work/bios-setup/core.img" || fail 'cannot stage BIOS core.img' 56
+grub-bios-setup --directory="$work/bios-setup" \
+  --boot-image=boot.img --core-image=core.img "$loop" || fail 'BIOS embedding in virtual image failed' 43
 losetup -d "$loop" || fail 'loop detach failed' 44
 loop=
 [ ! -e "$image" ] && [ ! -L "$image" ] || fail 'output image appeared during preparation' 45

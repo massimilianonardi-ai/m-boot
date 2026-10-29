@@ -20,6 +20,9 @@ DESCRIPTION
     identical before adding a second EFI binary. The i386-pc bootstrap is
     written with grub-bios-setup ONLY to the loop device backed by the
     fresh temporary raw file, after verifying the loop backing path.
+    BIOS boot.img and core.img are first copied to a private temporary
+    setup directory because grub-bios-setup resolves both filenames
+    relative to that directory. The host GRUB module tree is untouched.
     By default the i386-pc boot.img comes from the tracked verified
     prebuilt/m-boot-i386-pc.tar.xz, temporarily extracted alongside the
     test image workspace; the host grub-bios-setup version is checked
