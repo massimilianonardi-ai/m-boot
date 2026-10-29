@@ -22,6 +22,10 @@ DESCRIPTION
     or corrupted bundled archive is a hard failure (not host fallback).
     Only modules are taken from the package: the EFI/BIOS image and the
     loader stage are rebuilt from CURRENT repository source files.
+    The bootstrap embeds GRUB graphics/font/image and target video modules
+    (i386-pc: vbe; EFI: efi_gop), making the external theme independent
+    of host-side GRUB module directories at boot time. The external stage
+    contains loader/theme/default and loader/menu/gui from the repository.
 
 TARGETS
     x86_64-efi: DIR/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI

@@ -121,7 +121,7 @@ fi
 
 if command -v grub-script-check >/dev/null 2>&1
 then
-  for script in "$root/boot/bootstrap-memdisk.sh" "$root/boot/init" "$root/boot/recovery" "$root/loader/init"
+  for script in "$root/boot/bootstrap-memdisk.sh" "$root/boot/init" "$root/boot/recovery" "$root/loader/init" "$root/loader/menu/gui"
   do
     grub-script-check "$script" || fail "GRUB script syntax check failed: $script" 28
   done
@@ -132,10 +132,13 @@ fi
 # Keep bootstrap/recovery independent of modules on the data filesystem.
 set -- normal memdisk tar configfile regexp test search search_fs_file \
   search_fs_uuid search_label echo ls sleep reboot halt terminal \
-  part_gpt part_msdos fat exfat ext2 ntfs iso9660
+  part_gpt part_msdos fat exfat ext2 ntfs iso9660 \
+  gfxterm gfxmenu font video video_fb bitmap bitmap_scale png jpeg tga
 if [ "$target" = i386-pc ]
 then
-  set -- "$@" biosdisk
+  set -- "$@" biosdisk vbe
+else
+  set -- "$@" efi_gop
 fi
 
 for module

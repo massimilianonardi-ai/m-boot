@@ -1,18 +1,28 @@
-# Temporary smoke test for boot/init -> external /m/boot/loader/init.
-# This is not the multiboot loader.
-
+# The external m-loader starts in the existing GRUB theme when graphics work.
+# OS/ISO discovery remains a separate responsibility of the next loader phase.
 set default=0
 set timeout=-1
 
-echo "m-loader test: external init reached at ($root)$m_loader_init"
+# boot/init has selected the external filesystem as GRUB root.
+# Keep assets on that filesystem, not in the embedded (memdisk) recovery.
+set theme_dir="$m_loader_dir/theme"
+set theme_name=default
 
-menuentry "m-loader TEST: inspect boot context" --hotkey=i {
-  echo "m-loader test: external init executed"
+if [ -f "$m_loader_dir/menu/gui" ]
+then
+  source "$m_loader_dir/menu/gui"
+else
+  echo "m-loader: GUI initializer missing; using GRUB console."
+fi
+
+menuentry "Inspect boot context" --hotkey=i {
+  echo "m-loader: external init executed"
   echo "cmdpath=$cmdpath"
   echo "root=$root"
   echo "prefix=$prefix"
   echo "m_loader_disk=$m_loader_disk"
   echo "m_loader_init=$m_loader_init"
+  echo "m_loader_gui=$m_loader_gui"
   echo "GRUB devices:"
   ls
   echo "Loader directory:"

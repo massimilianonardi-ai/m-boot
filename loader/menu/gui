@@ -1,7 +1,13 @@
+# Historical m-loader theme initializer, used by the external loader.
+# Only the visual mechanism is active; the old boot recipes remain deferred.
 export gfxmode
 export theme
 export theme_name
 export current_theme_dir
+export m_loader_gui
+
+set m_loader_gui=console
+set theme=""
 
 if [ -z "$theme_name" ]
 then
@@ -13,42 +19,51 @@ then
   set gfxmode=1920x1080,1920x1200,1600x1050,1600x1200,1280x720,1280x800,1024x768,800x600x24,640x480
 fi
 
-if [ "$grub_platform" == "efi" ]
+set current_theme_dir="$theme_dir/$theme_name"
+
+# Fonts must be loaded before switching to gfxterm.
+if [ -f "$current_theme_dir/fonts.cfg" ]
+then
+  source "$current_theme_dir/fonts.cfg"
+fi
+
+# These video modules are embedded by build.sh for each target.
+if [ "$grub_platform" = efi ]
 then
   insmod efi_gop
-  insmod efi_uga
 else
   insmod vbe
-  insmod vga
 fi
 
-# A missing graphics backend or theme must not prevent text-menu booting.
-if insmod gfxterm && terminal_output gfxterm
+# GRUB's built-in console remains the safe fallback for any graphics failure.
+if insmod gfxterm
 then
-  insmod png
-  insmod tga
-  insmod jpeg
-
-  set current_theme_dir="$theme_dir/$theme_name"
-  if [ -f "$current_theme_dir/theme.cfg" ]
+  if terminal_output gfxterm
   then
-    insmod gfxmenu
-    set theme="$current_theme_dir/theme.cfg"
-    if [ -f "$current_theme_dir/fonts.cfg" ]
+    set m_loader_gui=gfxterm
+    if [ -f "$current_theme_dir/theme.cfg" ]
     then
-      source "$current_theme_dir/fonts.cfg"
+      if insmod gfxmenu
+      then
+        insmod png
+        insmod jpeg
+        insmod tga
+        set theme="$current_theme_dir/theme.cfg"
+        set m_loader_gui=theme
+      else
+        echo "m-loader: gfxmenu unavailable; using unthemed graphics menu."
+      fi
+    else
+      echo "m-loader: theme unavailable at $current_theme_dir; using unthemed graphics menu."
     fi
   else
-    set theme=""
-    echo "m-boot: graphical theme unavailable; using unthemed menu"
+    terminal_output console
+    echo "m-loader: gfxterm unavailable; using GRUB console."
   fi
 else
-  set theme=""
   terminal_output console
-  echo "m-boot: graphics unavailable; using console menu"
+  echo "m-loader: graphics modules unavailable; using GRUB console."
 fi
 
-function setTheme
-{
-  echo function setTheme
-}
+# Source succeeds even if only a console is available.
+set m_loader_gui="$m_loader_gui"

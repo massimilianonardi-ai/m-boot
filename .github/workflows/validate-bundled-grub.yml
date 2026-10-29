@@ -6,6 +6,7 @@ on:
       - build.sh
       - tests/qemu-combined-image.sh
       - tests/qemu-combined-test.sh
+      - loader/**
       - .github/workflows/validate-bundled-grub.yml
   workflow_dispatch:
 
@@ -39,6 +40,13 @@ jobs:
           test -s "$RUNNER_TEMP/m-boot-stages/i386-pc/bios/core.img"
           test -s "$RUNNER_TEMP/m-boot-stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI"
           test -s "$RUNNER_TEMP/m-boot-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
+          for target in i386-pc x86_64-efi arm64-efi
+          do
+            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/theme/default/theme.cfg"
+            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/theme/default/images/background.jpg"
+            test -s "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/menu/gui"
+            grep -Fq "gfxterm" "$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader/menu/gui"
+          done
       - name: Explicit override cannot silently fall back
         run: |
           set -eu

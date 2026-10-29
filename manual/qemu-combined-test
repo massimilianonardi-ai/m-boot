@@ -15,6 +15,10 @@ DESCRIPTION
     explicitly using the --modules-* options. With --stages, uses
     prebuilt target directories from other compatible Linux build hosts.
     Calls qemu-combined-image.sh to create one new raw GPT disk.
+    The external loader uses the existing GRUB graphical theme on all
+    targets when the firmware exposes graphics; a console menu is the
+    fallback. The new graphical init retains only inspection/recovery
+    controls until the historic device/ISO discovery is migrated and tested.
     By default sequentially runs qemu-run.sh on that SAME disk, first
     as BIOS x86_64, then UEFI x86_64, then UEFI ARM64; each QEMU
     instance must be closed to proceed. --target selects one target
