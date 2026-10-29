@@ -1,0 +1,93 @@
+name: Build GRUB i386-pc BIOS stage
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-grub-i386-pc.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bios:
+    name: GRUB i386-pc BIOS stage and complete modules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out m-boot
+        uses: actions/checkout@v4
+
+      - name: Install GRUB BIOS modules and build tools
+        run: |
+          set -eu
+          test "$(uname -m)" = x86_64
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            grub-common grub2-common grub-pc-bin
+          test -s /usr/lib/grub/i386-pc/boot.img
+          test -s /usr/lib/grub/i386-pc/normal.mod
+          test -s /usr/lib/grub/i386-pc/exfat.mod
+          test -s /usr/lib/grub/i386-pc/biosdisk.mod
+          command -v grub-bios-setup
+          grub-mkimage --version
+          grub-script-check --version
+          dpkg-query -W grub-common grub2-common grub-pc-bin
+
+      - name: Build BIOS core using the real m-boot builder
+        run: |
+          set -eu
+          ./build.sh --target i386-pc --output ./dist \
+            --modules-dir /usr/lib/grub/i386-pc
+          test -s dist/i386-pc/bios/core.img
+          test -f dist/i386-pc/data/m/boot/loader/init
+          test "$(sed -n '2p' dist/i386-pc/stage-info)" = "target=i386-pc"
+          file dist/i386-pc/bios/core.img
+
+      - name: Bundle complete BIOS module directory and provenance
+        run: |
+          set -eu
+          mkdir -p dist/grub-modules/i386-pc
+          cp -a /usr/lib/grub/i386-pc/. dist/grub-modules/i386-pc/
+          printf 'source_commit=%s\nrunner=%s\n' "$GITHUB_SHA" "$(uname -m)" > dist/i386-pc-build-info.txt
+          dpkg-query -W grub-common grub2-common grub-pc-bin >> dist/i386-pc-build-info.txt
+          (cd dist && sha256sum i386-pc/bios/core.img > core.img.sha256)
+          test -s dist/grub-modules/i386-pc/boot.img
+          test -s dist/grub-modules/i386-pc/normal.mod
+          test -s dist/grub-modules/i386-pc/exfat.mod
+          test -s dist/grub-modules/i386-pc/biosdisk.mod
+
+      - name: Publish BIOS stage and modules as Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-i386-pc
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      # Publish only on the triggering workflow-file push, not manual runs.
+      # An archive-only commit does not match the workflow's push.paths.
+      - name: Persist BIOS package in repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          mkdir -p prebuilt
+          tar -C dist -cJf prebuilt/m-boot-i386-pc.tar.xz \
+            i386-pc grub-modules i386-pc-build-info.txt core.img.sha256
+          test -s prebuilt/m-boot-i386-pc.tar.xz
+          tar -tJf prebuilt/m-boot-i386-pc.tar.xz >/dev/null
+          sha256sum prebuilt/m-boot-i386-pc.tar.xz \
+            > prebuilt/m-boot-i386-pc.tar.xz.sha256
+          sha256sum -c prebuilt/m-boot-i386-pc.tar.xz.sha256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- prebuilt/m-boot-i386-pc.tar.xz \
+            prebuilt/m-boot-i386-pc.tar.xz.sha256
+          if git diff --cached --quiet
+          then
+            echo 'BIOS archive already matches the committed package'
+          else
+            git commit -m 'Store built GRUB i386-pc BIOS stage and modules in repository'
+            git push origin HEAD:main
+          fi

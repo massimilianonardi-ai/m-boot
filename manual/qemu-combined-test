@@ -36,22 +36,26 @@ EXAMPLES
     sudo tests/qemu-combined-test.sh --stages ./prebuilt-stages \
       --output ./combined-qemu --target all
 
-UEFI MODULES AND STAGES STORED IN GIT
-    The repository tracks complete x86_64-efi and arm64-efi module/stage
+THREE TARGET MODULE SETS AND STAGES STORED IN GIT
+    The repository tracks complete x86_64-efi, arm64-efi and i386-pc module/stage
     archives. No time-limited GitHub artifact download is required.
-    After git pull, verify the two package SHA256 files and extract them
+    After git pull, verify the three package SHA256 files and extract them
     to a common STAGES directory:
         sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256
         sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
+        sha256sum -c prebuilt/m-boot-i386-pc.tar.xz.sha256
         mkdir -p ./qemu-combined/stages
         tar -xJf prebuilt/m-boot-x86_64-efi.tar.xz \
           -C ./qemu-combined/stages
         tar -xJf prebuilt/m-boot-arm64-efi.tar.xz \
           -C ./qemu-combined/stages
-    Build the i386-pc stage into the same parent and run this command
-    with --stages ./qemu-combined/stages. Cross-architecture GRUB stages
-    are already built, so their native build modules are not required
-    on the QEMU test host. See manual/build and prebuilt/README.md.
+        tar -xJf prebuilt/m-boot-i386-pc.tar.xz \
+          -C ./qemu-combined/stages
+    All three stages are already built. Invoke this command with
+    --stages ./qemu-combined/stages --bios-modules-dir
+    ./qemu-combined/stages/grub-modules/i386-pc. The BIOS path still
+    requires the host command grub-bios-setup (grub2-common); no target
+    module packages need to be installed on the host. See manual/build and prebuilt/README.md.
 
 
 REQUIREMENTS

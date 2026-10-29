@@ -24,7 +24,9 @@ DESCRIPTION
 REQUIREMENTS
     Linux root for loopback, partition formatting and mounting; matching
     three build stages (which may have been prepared on different build
-    hosts), grub-bios-setup and i386-pc boot.img, qemu-img, sgdisk,
+    hosts), grub-bios-setup and i386-pc boot.img (both available separately:
+    boot.img from prebuilt/m-boot-i386-pc.tar.xz and grub-bios-setup as a
+    host program), qemu-img, sgdisk,
     losetup, mkfs.vfat, mkfs.exfat, mount and umount.
     Select a separate output directory. No physical disk pathname is
     accepted, and the resulting raw file is not a physical install.
@@ -32,7 +34,7 @@ REQUIREMENTS
 EXAMPLE
     sudo tests/qemu-combined-image.sh \
       --stages ./combined-stages --output ./combined-results \
-      --bios-modules-dir /usr/lib/grub/i386-pc
+      --bios-modules-dir ./combined-stages/grub-modules/i386-pc
 
 LIMITATIONS
     This script creates a boot candidate, not a tested boot. Check the

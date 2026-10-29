@@ -1,6 +1,6 @@
-# GRUB UEFI modules and prebuilt boot stages
+# GRUB target modules and prebuilt boot stages
 
-This directory contains **two Git-tracked, complete GRUB UEFI module sets**.
+This directory contains **three Git-tracked, complete GRUB target module sets**.
 They are not part of the RumiAI-authored GRUB scripts and do not replace
 `build.sh`. Each archive also includes the boot-stage output built by
 `build.sh` from the repository revision recorded in its metadata.
@@ -9,6 +9,7 @@ They are not part of the RumiAI-authored GRUB scripts and do not replace
 | --- | --- | --- |
 | x86_64-efi | `m-boot-x86_64-efi.tar.xz` | `ubuntu-24.04` / `grub-efi-amd64-bin` |
 | arm64-efi | `m-boot-arm64-efi.tar.xz` | `ubuntu-24.04-arm` / `grub-efi-arm64-bin` |
+| i386-pc | `m-boot-i386-pc.tar.xz` | `ubuntu-24.04` / `grub-pc-bin` |
 
 Each `.tar.xz` has a corresponding `.tar.xz.sha256` manifest committed next
 to it. The archives contain **all files** distributed under
@@ -19,11 +20,14 @@ Archive structure:
 ```text
 <TARGET>/                        complete m-boot stage
   stage-info
-  esp/EFI/BOOT/BOOT*.EFI
+  esp/EFI/BOOT/BOOT*.EFI (UEFI targets)
+  bios/core.img (i386-pc target)
   data/m/boot/loader/
 grub-modules/<TARGET>/           complete Ubuntu GRUB target directory
 <architecture>-build-info.txt   source_commit, runner architecture, package versions
-BOOT*.EFI.sha256                 checksum of the compiled EFI image
+BOOT*.EFI.sha256 (UEFI targets)  checksum of the compiled EFI image
+core.img.sha256 (i386-pc)       checksum of the compiled BIOS core image
+                               includes grub-modules/i386-pc/boot.img
 ```
 
 Usage from the repository root:
@@ -31,10 +35,19 @@ Usage from the repository root:
 ```sh
 sha256sum -c prebuilt/m-boot-x86_64-efi.tar.xz.sha256
 sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
+sha256sum -c prebuilt/m-boot-i386-pc.tar.xz.sha256
 mkdir -p qemu-combined/stages
 tar -xJf prebuilt/m-boot-x86_64-efi.tar.xz -C qemu-combined/stages
 tar -xJf prebuilt/m-boot-arm64-efi.tar.xz -C qemu-combined/stages
+tar -xJf prebuilt/m-boot-i386-pc.tar.xz -C qemu-combined/stages
 ```
+
+For the combined QEMU disk test the BIOS image also requires
+`grub-bios-setup`, supplied by the host GRUB utilities; the complete BIOS
+module directory includes `boot.img` and may be passed explicitly as
+`--bios-modules-dir ./qemu-combined/stages/grub-modules/i386-pc`.
+`core.img` is not bootable merely by copying it to a filesystem: BIOS
+installation requires boot-sector and GPT BIOS Boot Partition embedding.
 
 The unpacked GRUB modules may also be supplied explicitly to `build.sh`
 using `--modules-dir ./qemu-combined/stages/grub-modules/<TARGET>`.
@@ -58,6 +71,6 @@ appropriate GRUB copyright and licensing notices when redistributing.
 The GRUB project source is also published at
 https://www.gnu.org/software/grub/.
 
-A generated EFI executable or module archive is **not** evidence of
-successful firmware boot. BIOS/i386-pc is a separate target and is not
-included in these two UEFI packages.
+Generated EFI executables, BIOS core images and module archives are **not**
+evidence of successful firmware boot. The i386-pc stage targets legacy x86 BIOS,
+not ARM64 BIOS or UEFI.
