@@ -1,0 +1,42 @@
+#!/bin/sh
+# Verified native GRUB tooling; never installs into the host filesystem.
+set -eu
+
+fail()
+{
+  printf 'm-boot GRUB toolchain: %s\n' "$1" >&2
+  exit "$2"
+}
+
+[ "$#" -ge 1 ] || fail 'missing host utility name' 1
+tool=$1
+shift
+case "$tool" in
+  grub-mkimage|grub-script-check|grub-bios-setup) ;;
+  *) fail "unsupported host utility: $tool" 2 ;;
+esac
+[ "$(uname -s)" = Linux ] || fail 'Linux host required' 3
+case "$(uname -m)" in
+  x86_64|aarch64) arch=$(uname -m) ;;
+  *) fail 'only Linux x86_64 and aarch64 toolchains supported' 4 ;;
+esac
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P) || fail 'cannot resolve repository root' 5
+archive="$root/prebuilt/m-boot-grub-tools-linux-$arch.tar.xz"
+manifest="$archive.sha256"
+[ -f "$archive" ] && [ ! -L "$archive" ] || fail "missing tool archive: $archive" 6
+[ -f "$manifest" ] && [ ! -L "$manifest" ] || fail "missing archive checksum: $manifest" 7
+command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum missing' 8
+(CDPATH= cd -- "$root" && sha256sum -c "prebuilt/m-boot-grub-tools-linux-$arch.tar.xz.sha256") || fail 'toolchain checksum failed' 9
+
+work=$(mktemp -d "${TMPDIR:-/tmp}/m-boot-grub-tools.XXXXXXXX") || fail 'cannot create private tool directory' 10
+trap 'rm -rf -- "$work"' 0
+trap 'exit 130' 1 2 3 15
+tar -xJf "$archive" -C "$work" toolchain || fail 'cannot extract native GRUB toolchain' 11
+[ -f "$work/toolchain/provenance.txt" ] || fail 'missing toolchain provenance' 12
+archive_arch=$(sed -n 's/^arch=//p' "$work/toolchain/provenance.txt")
+[ "$archive_arch" = "$arch" ] || fail "architecture mismatch: $archive_arch vs $arch" 13
+binary="$work/toolchain/bin/$tool"
+[ -x "$binary" ] || fail "$tool not provided for Linux $arch" 14
+
+LD_LIBRARY_PATH="$work/toolchain/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$binary" "$@"
