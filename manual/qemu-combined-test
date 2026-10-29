@@ -1,0 +1,55 @@
+NAME
+    qemu-combined-test.sh - run BIOS, UEFI x86_64 and UEFI ARM64 on one image
+
+SYNOPSIS
+    tests/qemu-combined-test.sh --output DIR [--stages DIR]
+                                [--bios-modules-dir DIR]
+                                [--modules-bios DIR] [--modules-x64 DIR]
+                                [--modules-arm64 DIR] [--prepare-only]
+                                [--target all|i386-pc|x86_64-efi|arm64-efi]
+
+DESCRIPTION
+    Without --stages, calls build.sh three times for the BIOS, UEFI x64
+    and UEFI ARM64 targets. Target-specific modules may be supplied
+    explicitly using the --modules-* options. With --stages, uses
+    prebuilt target directories from other compatible Linux build hosts.
+    Calls qemu-combined-image.sh to create one new raw GPT disk.
+    By default sequentially runs qemu-run.sh on that SAME disk, first
+    as BIOS x86_64, then UEFI x86_64, then UEFI ARM64; each QEMU
+    instance must be closed to proceed. --target selects one target
+    from the three, while still preparing the common disk.
+
+    --prepare-only creates the image without running QEMU; one can then
+    inspect the unchanged file manually under each firmware, without
+    root for the qemu-run.sh portion.
+
+EXAMPLES
+    sudo tests/qemu-combined-test.sh --output ./combined-qemu --prepare-only
+
+    tests/qemu-run.sh --target i386-pc \
+      --image ./combined-qemu/m-boot-combined.raw
+    tests/qemu-run.sh --target x86_64-efi \
+      --image ./combined-qemu/m-boot-combined.raw
+    tests/qemu-run.sh --target arm64-efi \
+      --image ./combined-qemu/m-boot-combined.raw
+
+    sudo tests/qemu-combined-test.sh --stages ./prebuilt-stages \
+      --output ./combined-qemu --target all
+
+REQUIREMENTS
+    Linux root to prepare virtual GPT/mount filesystems, three target
+    GRUB module sets or prebuilt stages, i386-pc boot.img, GRUB BIOS
+    setup, plus QEMU emulators and OVMF/AAVMF firmware for interactive
+    execution. Cross-host stages must be from compatible GRUB versions
+    and contain the same loader/ tree. If a native ARM64 GRUB module
+    package is unavailable on an x86_64 host, produce that stage on
+    an ARM64 build host and pass --stages after collecting all stages.
+
+RESULTS
+    BIOS boot and both UEFI boots must reach the external m-loader TEST
+    menu on the SAME raw image. A started QEMU process is not enough
+    evidence of boot success. Neither physical USB nor secure boot is
+    tested by this workflow.
+
+SEE ALSO
+    manual/qemu-combined-image, manual/qemu-run, manual/build

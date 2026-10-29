@@ -1,0 +1,44 @@
+NAME
+    qemu-combined-image.sh - build one GPT image with BIOS and two UEFI loaders
+
+SYNOPSIS
+    tests/qemu-combined-image.sh --stages DIR --output DIR
+                                 [--bios-modules-dir DIR]
+
+DESCRIPTION
+    Takes three previously generated build.sh stages from DIR/i386-pc,
+    DIR/x86_64-efi and DIR/arm64-efi. Creates exactly one new 2 GiB raw
+    disk file at DIR-OUTPUT/m-boot-combined.raw; an existing output is
+    never overwritten. The image uses GPT and contains:
+       1   EF02   10 MiB        BIOS Boot Partition, no filesystem
+       2   EF00   512 MiB       EFI System Partition, FAT32
+       3   0700   remainder     exFAT common loader/data
+
+    The ESP has both EFI/BOOT/BOOTX64.EFI and EFI/BOOT/BOOTAA64.EFI.
+    The exFAT filesystem has ONE /m/boot/loader/ tree. The installer is
+    called once per EFI target and must confirm the existing loader is
+    identical before adding a second EFI binary. The i386-pc bootstrap is
+    written with grub-bios-setup ONLY to the loop device backed by the
+    fresh temporary raw file, after verifying the loop backing path.
+
+REQUIREMENTS
+    Linux root for loopback, partition formatting and mounting; matching
+    three build stages (which may have been prepared on different build
+    hosts), grub-bios-setup and i386-pc boot.img, qemu-img, sgdisk,
+    losetup, mkfs.vfat, mkfs.exfat, mount and umount.
+    Select a separate output directory. No physical disk pathname is
+    accepted, and the resulting raw file is not a physical install.
+
+EXAMPLE
+    sudo tests/qemu-combined-image.sh \
+      --stages ./combined-stages --output ./combined-results \
+      --bios-modules-dir /usr/lib/grub/i386-pc
+
+LIMITATIONS
+    This script creates a boot candidate, not a tested boot. Check the
+    same raw file under all three QEMU target modes with qemu-run.sh.
+    No physical media or existing disk is repartitioned. In case of
+    cleanup failure inspect the reported temporary path/loop device.
+
+SEE ALSO
+    manual/qemu-combined-test, manual/qemu-run, manual/build, manual/install
