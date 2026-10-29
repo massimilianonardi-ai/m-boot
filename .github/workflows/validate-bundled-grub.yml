@@ -66,3 +66,9 @@ jobs:
           sudo ./tests/qemu-combined-test.sh --stages "$RUNNER_TEMP/m-boot-stages" --output "$RUNNER_TEMP/m-boot-disk" --prepare-only
           test -s "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
           sgdisk --verify "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
+      - name: Verify the ordinary no-stage operator path
+        run: |
+          set -eu
+          sudo ./tests/qemu-combined-test.sh --output "$RUNNER_TEMP/m-boot-normal-path" --prepare-only
+          test -s "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
+          sgdisk --verify "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
