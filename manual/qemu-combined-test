@@ -36,6 +36,18 @@ EXAMPLES
     sudo tests/qemu-combined-test.sh --stages ./prebuilt-stages \
       --output ./combined-qemu --target all
 
+ARM64 STAGE STORED IN GIT
+    When the native GitHub Actions ARM64 build has succeeded, use the
+    checked-in prebuilt/m-boot-arm64-efi.tar.xz rather than requiring
+    a temporary GitHub Actions artifact download:
+        sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
+        mkdir -p ./qemu-combined/stages
+        tar -xJf prebuilt/m-boot-arm64-efi.tar.xz \
+          -C ./qemu-combined/stages
+    Build i386-pc and x86_64-efi into the same stage parent, and run
+    qemu-combined-test.sh --stages ./qemu-combined/stages.
+    The checked-in stage must match the tested source revision.
+
 ARM64 BUILD ON GITHUB
     If arm64-efi modules are absent locally, run the workflow
     .github/workflows/build-grub-arm64.yml on the native GitHub ARM64

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   arm64:
@@ -60,3 +60,30 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      # This source-only push triggers one build that commits a tracked archive.
+      # The resulting archive-only push does not match the workflow path filter,
+      # so it cannot recursively run this workflow.
+      - name: Persist ARM64 package in the Git repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          mkdir -p prebuilt
+          tar -C dist -cJf prebuilt/m-boot-arm64-efi.tar.xz \
+            arm64-efi grub-modules arm64-build-info.txt BOOTAA64.EFI.sha256
+          test -s prebuilt/m-boot-arm64-efi.tar.xz
+          tar -tJf prebuilt/m-boot-arm64-efi.tar.xz >/dev/null
+          sha256sum prebuilt/m-boot-arm64-efi.tar.xz \
+            > prebuilt/m-boot-arm64-efi.tar.xz.sha256
+          sha256sum -c prebuilt/m-boot-arm64-efi.tar.xz.sha256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- prebuilt/m-boot-arm64-efi.tar.xz \
+            prebuilt/m-boot-arm64-efi.tar.xz.sha256
+          if git diff --cached --quiet
+          then
+            echo 'ARM64 archive already matches the committed package'
+          else
+            git commit -m 'Store built GRUB ARM64 stage and modules in repository'
+            git push origin HEAD:main
+          fi
