@@ -31,10 +31,17 @@ then
   fi
 fi
 
-if [ -n "$boot_disk" ] && [ -f "($boot_disk)$m_loader_init" ]
+# Prefer the firmware boot disk only when it contains our external loader.
+if [ -n "$boot_disk" ]
 then
-  set m_loader_disk="$boot_disk"
-else
+  if [ -f "($boot_disk)$m_loader_init" ]
+  then
+    set m_loader_disk="$boot_disk"
+  fi
+fi
+
+if [ -z "$m_loader_disk" ]
+then
   echo "m-boot: m-loader not found on firmware boot device, searching all devices..."
   if search --no-floppy --file --set m_loader_disk "$m_loader_init"
   then
@@ -45,19 +52,28 @@ else
   fi
 fi
 
-if [ -n "$m_loader_disk" ] && [ -f "($m_loader_disk)$m_loader_init" ]
+if [ -n "$m_loader_disk" ]
 then
-  set root="$m_loader_disk"
-  echo "m-boot: executing m-loader on disk=($m_loader_disk), path='$m_loader_init'"
-  if ! source "$m_loader_init"
+  if [ -f "($m_loader_disk)$m_loader_init" ]
   then
-    echo "m-boot: m-loader execution error, executing recovery..."
-    set root="$init_disk"
-    set prefix="($init_disk)"
-    source "$m_loader_recovery"
+    set root="$m_loader_disk"
+    echo "m-boot: executing m-loader on disk=($m_loader_disk), path='$m_loader_init'"
+    if source "$m_loader_init"
+    then
+      echo "m-boot: m-loader script loaded."
+    else
+      echo "m-boot: m-loader execution error."
+      set m_loader_disk=""
+    fi
+  else
+    echo "m-boot: selected m-loader is no longer accessible."
+    set m_loader_disk=""
   fi
-else
-  echo "m-boot: no m-loader found, executing recovery..."
+fi
+
+if [ -z "$m_loader_disk" ]
+then
+  echo "m-boot: executing embedded recovery..."
   set root="$init_disk"
   set prefix="($init_disk)"
   source "$m_loader_recovery"
