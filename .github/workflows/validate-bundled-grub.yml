@@ -103,7 +103,7 @@ jobs:
           sgdisk --verify "$RUNNER_TEMP/m-boot-normal-path/m-boot-combined.raw"
 
   portable-newer-host:
-    name: Native portable GRUB 2.12 on newer Ubuntu ($ matrix.arch)
+    name: Native portable GRUB 2.12 on newer Ubuntu (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
@@ -133,6 +133,15 @@ jobs:
           set -eu
           ./tools/grub-mkimage --version | grep -F '2.12-1ubuntu7.3'
           ./tools/grub-script-check --version | grep -F '2.12-1ubuntu7.3'
+          # A corrupt bundled host toolchain must never execute.
+          cp prebuilt/m-boot-grub-tools-linux-$(uname -m).tar.xz /tmp/native-grub-tool-backup.tar.xz
+          printf 'damage' >> prebuilt/m-boot-grub-tools-linux-$(uname -m).tar.xz
+          if ./tools/grub-mkimage --version
+          then
+            echo 'ERROR: corrupted host toolchain was accepted' >&2
+            exit 1
+          fi
+          cp /tmp/native-grub-tool-backup.tar.xz prebuilt/m-boot-grub-tools-linux-$(uname -m).tar.xz
           for target in i386-pc x86_64-efi arm64-efi
           do
             ./build.sh --target "$target" --output "$RUNNER_TEMP/portable-stages"
