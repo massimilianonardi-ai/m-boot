@@ -1,0 +1,41 @@
+# Embedded GRUB recovery. No external filesystem or Linux shell is required.
+# From the menu, press 'c' for the native GRUB command line; Esc returns.
+set root="memdisk"
+set prefix="(memdisk)"
+set theme=""
+terminal_output console
+
+set default=0
+set timeout=-1
+
+echo "m-boot recovery: press 'c' for the GRUB command line (Esc returns)."
+echo "No disk changes are made by this recovery menu."
+
+menuentry "Retry m-loader discovery" --hotkey=r {
+  configfile "(memdisk)/init"
+}
+
+menuentry "List available GRUB devices" --hotkey=l {
+  echo "GRUB devices:"
+  ls
+  echo "Press a key to return to the recovery menu."
+  sleep --interruptible 60
+}
+
+menuentry "Show boot environment" --hotkey=i {
+  echo "cmdpath=$cmdpath"
+  echo "root=$root"
+  echo "prefix=$prefix"
+  echo "boot_disk=$boot_disk"
+  echo "m_loader_disk=$m_loader_disk"
+  echo "Press a key to return to the recovery menu."
+  sleep --interruptible 60
+}
+
+menuentry "Reboot" --hotkey=b {
+  reboot
+}
+
+menuentry "Shut down" --hotkey=s {
+  halt
+}

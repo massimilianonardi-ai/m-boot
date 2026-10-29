@@ -1,8 +1,7 @@
-# Keep the embedded runtime available until an external root is verified.
+# Locate an external m-loader while retaining an embedded recovery path.
 export root
 export prefix
 
-<<<<<<< HEAD
 export init_disk
 export boot_disk
 
@@ -26,9 +25,9 @@ if [ -n "$cmdpath" ]
 then
   if regexp --set boot_disk '^\(([^)]*)\)' "$cmdpath"
   then
-    echo "m-boot: using firmware boot device ($boot_disk)"
+    echo "m-boot: firmware boot device ($boot_disk)"
   else
-    echo "m-boot: using cmdpath=$cmdpath detected boot device=($boot_disk) returned error"
+    echo "m-boot: cannot identify boot device from cmdpath='$cmdpath'"
   fi
 fi
 
@@ -54,107 +53,12 @@ then
   then
     echo "m-boot: m-loader execution error, executing recovery..."
     set root="$init_disk"
+    set prefix="($init_disk)"
     source "$m_loader_recovery"
   fi
 else
   echo "m-boot: no m-loader found, executing recovery..."
+  set root="$init_disk"
+  set prefix="($init_disk)"
   source "$m_loader_recovery"
 fi
-=======
-set core_dir="(memdisk)"
-set root_dir="/m/boot/loader"
-set root_conf="$core_dir/root.conf"
-set env_file="$root_dir/environment"
-
-set root="(memdisk)"
-set prefix="(memdisk)"
-set boot_root=""
-
-# The firmware device takes precedence when it contains this installation.
-# This also avoids selecting a different clone with the same marker file.
-if [ -n "$cmdpath" ]
-then
-  if regexp --set=boot_candidate '(\(.*\))' "$cmdpath"
-  then
-    if [ -f "$boot_candidate$env_file" ]
-    then
-      set boot_root="$boot_candidate"
-      echo "m-boot: using firmware boot device $boot_root"
-    fi
-  fi
-fi
-
-# The embedded root.conf normally searches for this build's marker file.
-# A failed search must not suppress the remaining discovery methods.
-if [ -z "$boot_root" ] && [ -f "$root_conf" ]
-then
-  set root="(memdisk)"
-  source "$root_conf"
-
-  if [ "$root" != "(memdisk)" ] && [ -f "$env_file" ]
-  then
-    set boot_root="$root"
-    echo "m-boot: found configured boot device $boot_root"
-  fi
-fi
-
-# Last resort for media whose firmware path or embedded marker is unavailable.
-if [ -z "$boot_root" ]
-then
-  set root="(memdisk)"
-  if search --no-floppy --file --set=root "$env_file"
-  then
-    if [ -f "$env_file" ]
-    then
-      set boot_root="$root"
-      echo "m-boot: found boot environment on $boot_root"
-    fi
-  fi
-fi
-
-if [ -z "$boot_root" ]
-then
-  set root="(memdisk)"
-  set prefix="(memdisk)"
-  echo "m-boot: no usable /m/boot/loader/environment found"
-  echo "m-boot: recovery is running from the embedded memdisk"
-  source "$core_dir/menu-recovery"
-else
-  set root="$boot_root"
-  set prefix="$root_dir"
-
-  export theme_dir
-  if [ -d "$core_dir/theme" ]
-  then
-    set theme_dir="$core_dir/theme"
-  else
-    set theme_dir="$root_dir/theme"
-  fi
-
-  export boot_dir
-  export system_dir
-  export linux_dir
-  export tools_dir
-  export vm_dir
-  export windows_dir
-
-  set boot_dir="/m/boot"
-  set system_dir="/m/sys"
-  set linux_dir="$system_dir/linux"
-  set tools_dir="$system_dir/tools"
-  set vm_dir="$system_dir/vm"
-  set windows_dir="$system_dir/windows"
-
-  # The external environment may set preferences, never root or prefix.
-  if [ -f "$env_file" ]
-  then
-    load_env --file "$env_file" --skip-sig theme_name gfxmode timeout_default
-  fi
-
-  source "$core_dir/gui"
-
-  export main
-  set main="$core_dir/main"
-  source "$main"
-fi
->>>>>>> af0b323c426d54f4692a3728bf98f0dc8a0422b7
