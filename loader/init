@@ -1,5 +1,5 @@
 # The external m-loader starts in the existing GRUB theme when graphics work.
-# OS/ISO discovery remains a separate responsibility of the next loader phase.
+# Selected external boot media recipes are exposed; general OS/ISO discovery remains pending.
 set default=0
 set timeout=-1
 

@@ -1,5 +1,5 @@
 # Historical m-loader theme initializer, used by the external loader.
-# Only the visual mechanism is active; the old boot recipes remain deferred.
+# The GUI remains independent; selected historical ISO recipes are now exposed by the media index.
 export gfxmode
 export theme
 export theme_name
