@@ -1,0 +1,69 @@
+NAME
+    qemu-published-test.sh - visually test the published m-boot USB image
+                             on BIOS x86_64 and both UEFI architectures
+
+SYNOPSIS
+    tests/qemu-published-test.sh
+        [--target all|i386-pc|x86_64-efi|arm64-efi]
+        [--output DIR] [--verify-only]
+
+DESCRIPTION
+    Validates the exact images/m-boot-combined.raw.gz distribution that
+    usb-install.sh flashes onto physical media. Checks SHA256 of the
+    compressed image, checks that its metadata requires the complete
+    loader on the ESP, decompresses to one private sparse 2 GiB raw image
+    under DIR and validates its size and raw SHA256. This requires GNU dd
+    and enough host filesystem space/quota for the sparse raw image.
+    DIR defaults to the current working directory (NOT /tmp).
+    The temporary image and directory are removed when the test exits.
+
+    Runs the existing tests/qemu-run.sh sequentially on the SAME image:
+        i386-pc      x86_64 legacy BIOS
+        x86_64-efi   x86_64 UEFI (OVMF)
+        arm64-efi    ARM64 UEFI (AAVMF/EDK2)
+
+    Each QEMU launch uses snapshot mode and separate temporary UEFI
+    variables. No mounted device, host disk, USB stick or physical
+    partition is accessed. Root is not needed; GRUB and images are not
+    rebuilt. The raw source is rehashed after every QEMU instance.
+
+    For each platform inspect the graphical GRUB m-loader menu and its
+    "Inspect boot context" entry. Close the QEMU window, then type PASS
+    or FAIL in the terminal. QEMU exiting successfully does not by itself
+    prove that the loader booted. The command exits nonzero if any
+    platform fails or the operator does not confirm it.
+
+OPTIONS
+    --target        Default all. Limit to one target when needed.
+    --output DIR    Existing writable directory with suitable disk quota
+                    for a sparse image; defaults to the current directory.
+    --verify-only   Verify the real gzip/raw image without starting QEMU,
+                    without requiring a terminal; useful for CI.
+    --help          Show usage.
+
+REQUIREMENTS
+    Linux with POSIX sh, GNU dd (iflag=fullblock, conv=sparse), gzip,
+    sha256sum, and enough free file quota for the sparse temporary disk.
+    Interactive runs need qemu-system-x86_64 and qemu-system-aarch64,
+    and matching OVMF/AAVMF CODE+VARS firmware at the standard locations
+    recognized by tests/qemu-run.sh. A graphical display is necessary
+    to inspect the GRUB menu. No sudo is required.
+
+EXAMPLES
+    cd /path/to/m-boot
+    ./tests/qemu-published-test.sh
+
+    ./tests/qemu-published-test.sh --target arm64-efi --output "$HOME"
+    ./tests/qemu-published-test.sh --verify-only
+
+LIMITATIONS
+    The QEMU source is the published unexpanded 2 GiB disk image, not the
+    physical USB stick with its enlarged exFAT data partition. It checks
+    the same boot partitions/loader payload as the flashed image but
+    DOES NOT verify real USB firmware boot or physical device readability.
+    Automated checksum/preparation PASS does not imply successful QEMU
+    firmware boot: visual inspection and the operator's explicit per-target
+    PASS are required. Secure Boot and ISO boot are not verified.
+
+SEE ALSO
+    manual/qemu-run, manual/usb-image, manual/qemu-combined-test
