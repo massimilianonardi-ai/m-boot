@@ -41,7 +41,7 @@ jobs:
           ./build.sh --target i386-pc --output ./dist \
             --modules-dir /usr/lib/grub/i386-pc
           test -s dist/i386-pc/bios/core.img
-          test -f dist/i386-pc/data/m/boot/loader/init
+          test -f dist/i386-pc/esp/m/boot/loader/init
           test "$(sed -n '2p' dist/i386-pc/stage-info)" = "target=i386-pc"
           file dist/i386-pc/bios/core.img
 
