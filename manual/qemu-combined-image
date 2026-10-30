@@ -16,7 +16,10 @@ DESCRIPTION
 
     The ESP has both EFI/BOOT/BOOTX64.EFI and EFI/BOOT/BOOTAA64.EFI,
     plus ONE /m/boot/loader/ tree and three complete runtime module trees.
-    exFAT starts empty, for ISO images, backup and other user data only. The installer is
+    exFAT starts empty for external tools, bootable ISO images, virtual
+    machines and other large payloads such as backups. Built-in menus,
+    themes, configuration and GRUB runtime modules remain on the ESP.
+    The installer is
     called once per EFI target and must confirm the existing loader is
     identical before adding a second EFI binary. The i386-pc bootstrap is
     written with grub-bios-setup ONLY to the loop device backed by the
