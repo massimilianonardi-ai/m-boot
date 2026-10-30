@@ -21,8 +21,8 @@ jobs:
             gdisk qemu-utils dosfstools exfatprogs zstd
           ./tools/grub-mkimage --version
           ./tools/grub-bios-setup --version
-          mk_version=$(./tools/grub-mkimage --version | awk '{print $NF}')
-          bios_version=$(./tools/grub-bios-setup --version | awk '{print $NF}')
+          mk_version=$(./tools/grub-mkimage --version | awk '/\(GRUB\)/ { print $NF }')
+          bios_version=$(./tools/grub-bios-setup --version | awk '/\(GRUB\)/ { print $NF }')
           echo "mkimage=$mk_version bios-setup=$bios_version"
           test "$mk_version" = 2.12-1ubuntu7.3
           test "$bios_version" = 2.12-1ubuntu7.3
