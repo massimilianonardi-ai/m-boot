@@ -105,4 +105,5 @@ VALIDATION LIMITS
     not claim Secure Boot, Apple Silicon boot or arbitrary ISO support.
 
 SEE ALSO
-    manual/build, manual/qemu-combined-test, manual/qemu-combined-image
+    manual/build, manual/qemu-published-test, manual/qemu-combined-test,
+    manual/qemu-combined-image
