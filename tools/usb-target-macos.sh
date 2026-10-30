@@ -88,7 +88,12 @@ usb_prepare()
 usb_write()
 {
   rawdisk=$(printf '%s\n' "$usb_disk" | sed 's@^/dev/disk@/dev/rdisk@')
-  sudo dd if="$usb_work/m-boot-combined.raw" of="$rawdisk" bs=4m
+  sudo dd of="$rawdisk" bs=4m
+}
+usb_readback()
+{
+  rawdisk=$(printf '%s\n' "$usb_disk" | sed 's@^/dev/disk@/dev/rdisk@')
+  sudo dd if="$rawdisk" bs=4m count=512 2>/dev/null
 }
 usb_refresh()
 {
