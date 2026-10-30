@@ -2,10 +2,27 @@
 # macOS-specific operations sourced by usb-install.sh; no independent CLI.
 usb_require()
 {
-  for cmd in diskutil plutil sgdisk newfs_exfat fsck_exfat
+  PATH="/opt/homebrew/sbin:/usr/local/sbin:$PATH"
+  export PATH
+  for cmd in diskutil plutil newfs_exfat fsck_exfat
   do
     command -v "$cmd" >/dev/null 2>&1 || usb_fail "missing macOS tool: $cmd"
   done
+  if ! command -v sgdisk >/dev/null 2>&1
+  then
+    if command -v brew >/dev/null 2>&1
+    then
+      usb_info 'installing required gdisk tools through Homebrew'
+      brew install gdisk || usb_fail 'automatic gdisk installation failed'
+    elif [ -x /opt/homebrew/bin/brew ]
+    then
+      usb_info 'installing required gdisk tools through Homebrew'
+      /opt/homebrew/bin/brew install gdisk || usb_fail 'automatic gdisk installation failed'
+    else
+      usb_fail 'sgdisk is absent and Homebrew is unavailable; no disk changes'
+    fi
+  fi
+  command -v sgdisk >/dev/null 2>&1 || usb_fail 'sgdisk remains unavailable'
 }
 usb_plist_value()
 {
