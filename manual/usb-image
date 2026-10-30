@@ -67,7 +67,12 @@ BOOT MEDIA GEOMETRY (512-BYTE LOGICAL SECTORS)
     The installed firmware executables are EFI/BOOT/BOOTX64.EFI and
     EFI/BOOT/BOOTAA64.EFI on the same ESP, with complete GRUB runtime
     modules for all three targets under /m/boot/loader on the FAT32 ESP.
-    The third partition remains empty for user ISO, backup and other data.
+    The third partition starts empty and is reserved for external tools,
+    bootable ISO images, virtual machines and other large payloads (such as
+    backups). Built-in m-loader scripts, menus, themes, configuration and
+    all supported GRUB runtime module trees stay on the FAT32 ESP.
+    No loader component is moved to exFAT merely because it is loaded
+    dynamically rather than embedded in a GRUB EFI executable.
     images/m-boot-loader.zip is an independent backup of the ESP loader,
     NOT content restored onto exFAT. The installer rejects legacy
     published images lacking BUILD-INFO.txt loader_location=esp. Fresh GPT
