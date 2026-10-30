@@ -74,7 +74,7 @@ jobs:
           )
           outcome=$?
           set -e
-          grep -F 'verifying published image and loader checksums' "$transcript"
+          grep -F 'verifying published image and ESP loader backup checksums' "$transcript"
           if grep -F 'Available physical disks' "$transcript"
           then
             # The caller typed q: the script should exit without consent/writes.
