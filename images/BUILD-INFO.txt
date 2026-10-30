@@ -1,4 +1,4 @@
-source_commit=79b9ee7862cb515f04a998381272bcfe83d68768
+source_commit=a2468f55880b57f078f1f2747e2b7c23b5c0184f
 host=x86_64
 grub=2.12-1ubuntu7.3
 image_bytes=2147483648
