@@ -1,0 +1,73 @@
+name: Build complete bootable GPT image
+on:
+  push:
+    paths:
+      - .github/workflows/build-usb-image.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install disk-image utilities
+        run: |
+          set -eu
+          test "$(uname -m)" = x86_64
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            gdisk qemu-utils dosfstools exfatprogs zstd
+          test "$(./tools/grub-mkimage --version | awk '{print $NF}')" = 2.12-1ubuntu7.3
+          test "$(./tools/grub-bios-setup --version | awk '{print $NF}')" = 2.12-1ubuntu7.3
+      - name: Generate same GPT for BIOS, x86_64 UEFI and ARM64 UEFI
+        run: |
+          set -eu
+          sudo ./tests/qemu-combined-test.sh \
+            --output "$RUNNER_TEMP/m-boot-usb-build" --prepare-only
+          raw="$RUNNER_TEMP/m-boot-usb-build/m-boot-combined.raw"
+          test -s "$raw"
+          test "$(stat -c %s "$raw")" = 2147483648
+          sudo sgdisk --verify "$raw"
+          sudo sgdisk --print "$raw"
+          sudo sgdisk --info=1 "$raw" | grep -F 'BIOS boot partition'
+          sudo sgdisk --info=2 "$raw" | grep -F 'EFI system partition'
+          sudo sgdisk --info=3 "$raw" | grep -F 'Microsoft basic data'
+      - name: Compress the complete disk and the separately restorable loader
+        run: |
+          set -eu
+          root="$RUNNER_TEMP/m-boot-usb-build"
+          raw="$root/m-boot-combined.raw"
+          stage="$root/stages/i386-pc"
+          pub="$RUNNER_TEMP/m-boot-publish"
+          mkdir -p "$pub"
+          test -s "$stage/data/m/boot/loader/init"
+          printf '%s  m-boot-combined.raw\n' "$(sha256sum "$raw" | awk '{print $1}')" \
+            > "$pub/m-boot-combined.raw.sha256"
+          zstd -3 -T0 -c "$raw" > "$pub/m-boot-combined.raw.zst"
+          sudo tar -C "$stage/data" -cf - m/boot/loader | \
+            zstd -3 -T0 -c > "$pub/m-boot-loader.tar.zst"
+          zstd -t "$pub/m-boot-combined.raw.zst"
+          zstd -t "$pub/m-boot-loader.tar.zst"
+          zstd -dc "$pub/m-boot-loader.tar.zst" | tar -tf - | grep -Fx 'm/boot/loader/init'
+          (cd "$pub" && sha256sum m-boot-combined.raw.zst m-boot-loader.tar.zst > SHA256SUMS)
+          (cd "$pub" && sha256sum -c SHA256SUMS)
+          {
+            printf 'source_commit=%s\n' "$GITHUB_SHA"
+            printf 'host=%s\n' "$(uname -m)"
+            printf 'grub=%s\n' "$(./tools/grub-mkimage --version)"
+            printf 'image_bytes=%s\n' "$(stat -c %s "$raw")"
+            printf 'target_sector_bytes=512\n'
+            printf 'targets=i386-pc,x86_64-efi,arm64-efi\n'
+            printf 'flash_is_destructive=yes\n'
+            printf 'exfat_inplace_grow_supported=no\n'
+          } > "$pub/BUILD-INFO.txt"
+      - name: Publish compressed disk image, loader backup and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-combined-gpt
+          path: ${{ runner.temp }}/m-boot-publish/
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 0

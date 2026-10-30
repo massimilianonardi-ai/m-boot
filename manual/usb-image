@@ -1,0 +1,64 @@
+NAME
+    usb-image - distributable m-boot GPT built on GitHub x86_64
+
+DESCRIPTION
+    GitHub Actions workflow "Build complete bootable GPT image" reuses
+    tests/qemu-combined-test.sh --prepare-only on a native Ubuntu 24.04
+    x86_64 runner. It uses checked GRUB 2.12 tools and target module sets
+    from the repository and publishes one complete 2 GiB disk image:
+      1. 10 MiB BIOS Boot Partition EF02 (GRUB i386-pc embedded)
+      2. 512 MiB FAT32 ESP (BOOTX64.EFI and BOOTAA64.EFI)
+      3. shared exFAT loader (m/boot/loader)
+    The workflow produces artifacts only, never writes a physical device.
+
+DOWNLOAD AND VERIFY
+    In GitHub Actions open "Build complete bootable GPT image", select the
+    successful run and download its "m-boot-combined-gpt" artifact ZIP.
+    Unzip into a new directory. The workflow retains artifacts for 30 days.
+    Verify with:
+        sha256sum -c SHA256SUMS
+        zstd -t m-boot-combined.raw.zst
+        zstd -t m-boot-loader.tar.zst
+        zstd -dc m-boot-combined.raw.zst | sha256sum
+    Compare the last SHA256 with m-boot-combined.raw.sha256. The independent
+    m-boot-loader.tar.zst stores the loader for restoring after exFAT
+    reformatting. BUILD-INFO.txt identifies the exact source revision.
+
+INITIAL USB FLASH (DESTRUCTIVE, REQUIRES PHYSICAL DEVICE AUTHORIZATION)
+    A raw image flash destroys all existing data on the target USB device.
+    The user must explicitly select the physical device and authorize
+    writes. m-boot does not automatically flash arbitrary /dev/sdX paths.
+    Verify a stable /dev/disk/by-id target and all of its partitions with
+    lsblk and udev, ensure it is not mounted or used by the host, and
+    confirm the device has 512-byte LOGICAL sectors and at least 2 GiB.
+    Do not guess the disk identifier or flash the host's system disk.
+    Physical flashing, repartitioning and formatting remain a distinct
+    operator-authorized step, not a side effect of the build.
+
+EXPAND THIRD PARTITION ON A NEWLY FLASHED USB
+    The GPT backup header copied from a 2 GiB image must be moved to the
+    end of the larger destination disk: sgdisk -e <verified-device>.
+    Verify GPT again. GParted's published support matrix does NOT
+    support growing existing exFAT filesystems. To use all remaining space,
+    keep the BIOS and EFI partitions unchanged, record the first LBA of
+    partition 3, delete/recreate ONLY partition 3 with the same first LBA,
+    end at the actual end of the disk, and type 0700. After kernel
+    partition re-probe, format ONLY the new third partition with exFAT
+    (DESTRUCTIVE to partition 3), then restore the loader:
+        zstd -dc m-boot-loader.tar.zst | tar -C <mounted-exfat-root> -xf -
+    The archive contains m/boot/loader and no user data.
+
+    Never perform this on an existing data-bearing disk. Do not move the
+    beginning of EF02: embedded BIOS sector references depend on that
+    location. Cloning copies disk and partition GUIDs, requiring deliberate
+    uniqueness management for multiple simultaneous copies. A filesystem
+    restore must be verified before relying on the USB to boot.
+
+VALIDATION
+    This workflow checks that real GRUB builds and GPT preparation succeed.
+    It does not establish physical boot or automatic exFAT growth. Test
+    the exact raw image under BIOS x86_64, UEFI x86_64 and UEFI ARM64
+    with tests/qemu-run.sh. Hardware tests are separate.
+
+SEE ALSO
+    manual/qemu-combined-test, manual/qemu-combined-image, manual/install
