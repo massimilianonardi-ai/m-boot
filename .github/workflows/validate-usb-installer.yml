@@ -1,0 +1,49 @@
+name: Validate USB installer host interfaces
+on:
+  push:
+    paths:
+      - usb-install.sh
+      - tools/usb-gpt.sh
+      - tools/usb-target-linux.sh
+      - tools/usb-target-macos.sh
+      - .github/workflows/validate-usb-installer.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse scripts and verify public distribution
+        run: |
+          set -eu
+          sh -n usb-install.sh tools/usb-gpt.sh tools/usb-target-linux.sh tools/usb-target-macos.sh
+          ./usb-install.sh --help
+          (cd images && sha256sum -c SHA256SUMS)
+          gzip -t images/m-boot-combined.raw.gz
+          unzip -tqq images/m-boot-loader.zip
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse scripts and verify public distribution with native macOS tools
+        run: |
+          set -eu
+          sh -n usb-install.sh tools/usb-gpt.sh tools/usb-target-linux.sh tools/usb-target-macos.sh
+          ./usb-install.sh --help
+          (cd images && shasum -a 256 -c SHA256SUMS)
+          gzip -t images/m-boot-combined.raw.gz
+          unzip -tqq images/m-boot-loader.zip
+      - name: Verify native diskutil and plist schema read-only
+        run: |
+          set -eu
+          diskutil list physical
+          disk=$(diskutil list internal physical | awk '/^\/dev\/disk[0-9]+ / { print $1; exit }')
+          test -n "$disk"
+          diskutil info -plist "$disk" > "$RUNNER_TEMP/disk-info.plist"
+          for key in WholeDisk Internal VirtualOrPhysical TotalSize DeviceBlockSize DeviceIdentifier
+          do
+            plutil -extract "$key" raw -o - "$RUNNER_TEMP/disk-info.plist"
+          done
+          echo "Validated the macOS native metadata queries without disk writes"
