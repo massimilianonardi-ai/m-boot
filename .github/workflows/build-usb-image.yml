@@ -19,8 +19,13 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             gdisk qemu-utils dosfstools exfatprogs zstd
-          test "$(./tools/grub-mkimage --version | awk '{print $NF}')" = 2.12-1ubuntu7.3
-          test "$(./tools/grub-bios-setup --version | awk '{print $NF}')" = 2.12-1ubuntu7.3
+          ./tools/grub-mkimage --version
+          ./tools/grub-bios-setup --version
+          mk_version=$(./tools/grub-mkimage --version | awk '{print $NF}')
+          bios_version=$(./tools/grub-bios-setup --version | awk '{print $NF}')
+          echo "mkimage=$mk_version bios-setup=$bios_version"
+          test "$mk_version" = 2.12-1ubuntu7.3
+          test "$bios_version" = 2.12-1ubuntu7.3
       - name: Generate same GPT for BIOS, x86_64 UEFI and ARM64 UEFI
         run: |
           set -eu
