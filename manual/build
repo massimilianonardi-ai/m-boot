@@ -8,7 +8,7 @@ SYNOPSIS
 DESCRIPTION
     Standalone Linux build: needs grub-mkimage with target-specific modules
     and tar. Uses the source boot/ files to produce an embedded memdisk, then
-    stages the external loader/ directory beneath data/m/boot/loader/.
+    stages the external loader/ directory beneath esp/m/boot/loader/ (the FAT32 ESP).
     Does not install, partition, format, or write to a block device.
     Fails rather than replacing an existing DIR/TARGET.
     By default resolves GRUB modules in this order:
@@ -32,7 +32,7 @@ DESCRIPTION
     grub-modules-bios.cfg and grub-modules-efi.cfg, respectively. Graphics,
     GUI and OS boot modules are not embedded and load only after discovery.
     Every stage contains ALL THREE target module trees in
-    data/m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/, copied from the
+    esp/m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/, copied from the
     checksum-verified GRUB archives (or from --modules-dir for the selected
     build target). This ensures the external loader tree is identical
     across all three ordinary stages and can be reused by both EFI images.
@@ -45,7 +45,8 @@ TARGETS
     x86_64-efi: DIR/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI
     arm64-efi:  DIR/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
     i386-pc:   DIR/i386-pc/bios/core.img (not directly bootable by copying)
-    Every target includes data/m/boot/loader/ and stage-info.
+    Every target includes esp/m/boot/loader/ and stage-info. The exFAT
+    data partition is reserved for ISO images and user payloads.
 
 OPTIONS
     --target        Required GRUB image format.
