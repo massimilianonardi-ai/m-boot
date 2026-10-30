@@ -11,7 +11,7 @@ DIR must contain build.sh stages: i386-pc/, x86_64-efi/, arm64-efi/.
 Creates a new output/m-boot-combined.raw; refuses to overwrite it.
 Uses only a temporary raw file/loop device, never a physical disk operand.
 GPT layout: 10 MiB BIOS Boot (EF02), 512 MiB FAT32 ESP (both UEFI
-architectures), remainder exFAT (one shared external loader).
+architectures), remainder exFAT (payload/data only; shared m-loader resides on ESP).
 Requires Linux root to mount the two image filesystems.
 BIOS modules: --bios-modules-dir > verified tracked archive > host directory.
 HELP
@@ -173,12 +173,16 @@ esp_mounted=yes
 mount -t exfat "$data_dev" "$work/data" || fail 'cannot mount virtual data' 34
 data_mounted=yes
 
-# The second installer pass adds BOOTAA64.EFI without replacing the common loader.
+# The second installer pass adds BOOTAA64.EFI on the same ESP without replacing its loader.
 "$root/install.sh" --stage "$stages/x86_64-efi" --esp "$work/esp" --data "$work/data" --apply || fail 'x86_64 UEFI install failed' 35
 "$root/install.sh" --stage "$stages/arm64-efi" --esp "$work/esp" --data "$work/data" --apply || fail 'ARM64 UEFI install failed' 36
 [ -s "$work/esp/EFI/BOOT/BOOTX64.EFI" ] || fail 'x86_64 UEFI image not installed' 37
 [ -s "$work/esp/EFI/BOOT/BOOTAA64.EFI" ] || fail 'ARM64 UEFI image not installed' 38
-[ -f "$work/data/m/boot/loader/init" ] || fail 'common external loader missing' 39
+[ -f "$work/esp/m/boot/loader/init" ] || fail 'common external ESP loader missing' 39
+[ -s "$work/esp/m/boot/loader/i386-pc/normal.mod" ] || fail 'BIOS modules absent from ESP loader' 58
+[ -s "$work/esp/m/boot/loader/x86_64-efi/normal.mod" ] || fail 'x86_64 modules absent from ESP loader' 59
+[ -s "$work/esp/m/boot/loader/arm64-efi/normal.mod" ] || fail 'ARM64 modules absent from ESP loader' 60
+[ ! -e "$work/data/m/boot/loader" ] || fail 'loader must not be stored on exFAT' 61
 sync
 umount "$work/data" || fail 'data unmount failed' 40
 data_mounted=no
