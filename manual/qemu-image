@@ -16,8 +16,8 @@ DESCRIPTION
 
 SCENARIOS
     loader       The EFI fixture calls install.sh --apply on the image's
-                 mounted ESP and data partition; the data partition contains
-                 /m/boot/loader/init. BIOS copies the loader and embeds its
+                 mounted ESP and data partition; the ESP contains
+                 /m/boot/loader/init. BIOS copies the loader to ESP and embeds its
                  GRUB core into the image's BIOS Boot Partition.
     recovery     Only the EFI image (UEFI) or BIOS GRUB core (BIOS) is
                  installed; no external loader is present. The embedded
