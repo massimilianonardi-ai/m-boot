@@ -101,7 +101,7 @@ gzip -dc "$dist/m-boot-combined.raw.gz" > "$usb_work/m-boot-combined.raw" ||
 usb_list > "$usb_work/disks"
 count=$(wc -l < "$usb_work/disks" | tr -d '[:space:]')
 [ "$count" -gt 0 ] || usb_fail 'no external physical disks detected'
-printf '\nAvailable external physical disks:\n'
+printf '\nAvailable physical disks (mounted/system disks cannot be overwritten):\n'
 number=0
 while IFS= read -r candidate
 do
