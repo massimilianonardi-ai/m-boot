@@ -43,9 +43,11 @@ PLATFORMS AND REQUIREMENTS
     Install/build runtime: standalone. Linux and macOS supported by the
     user-facing script; GRUB is not built on the selected operator host.
     The logical sector size must be 512 bytes and disk capacity at least
-    2 GiB. Internal and external physical disks are listed; mounted
-    Linux partitions and swaps are refused, and macOS unmounts the selected
-    disk before writing. The entire selected device is destroyed, not
+    2 GiB. Internal and external physical disks are listed. After confirmation,
+    ordinary Linux data volumes mounted under /media, /run/media or /mnt
+    are unmounted automatically; system mounts, active swap and a checkout
+    on the selected disk are refused. macOS unmounts the selected disk
+    before writing. The entire selected device is destroyed, not
     merely its existing exFAT partition. Partitions cannot be silently
     identified by a guessed /dev/sdX or diskN.
 
