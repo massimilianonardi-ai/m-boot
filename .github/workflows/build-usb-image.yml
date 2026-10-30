@@ -86,8 +86,9 @@ jobs:
           cp "$pub/BUILD-INFO.txt" "$pub/repo/BUILD-INFO.txt"
           (cd "$pub/repo" && sha256sum m-boot-combined.raw.gz m-boot-loader.zip > SHA256SUMS)
           (cd "$pub/repo" && sha256sum -c SHA256SUMS)
-          gzip -dc "$pub/repo/m-boot-combined.raw.gz" |
-            sha256sum | cmp - "$pub/m-boot-combined.raw.sha256"
+          raw_hash=$(gzip -dc "$pub/repo/m-boot-combined.raw.gz" | sha256sum | awk '{print $1}')
+          expected_hash=$(awk '{print $1}' "$pub/m-boot-combined.raw.sha256")
+          test "$raw_hash" = "$expected_hash"
       - name: Simulate larger USB, preserve boot partitions, recreate exFAT and restore loader
         run: |
           set -eu
