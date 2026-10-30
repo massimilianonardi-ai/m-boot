@@ -23,6 +23,12 @@ jobs:
           (cd images && sha256sum -c SHA256SUMS)
           gzip -t images/m-boot-combined.raw.gz
           unzip -tqq images/m-boot-loader.zip
+      - name: Install installer dependencies for real preflight
+        run: |
+          set -eu
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            gdisk exfatprogs parted util-linux
       - name: Exercise real interactive preflight with 16 MiB file quota
         run: |
           set -eu
