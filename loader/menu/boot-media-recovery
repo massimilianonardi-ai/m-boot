@@ -1,6 +1,6 @@
 # Only use historical recipes whose filename patterns match the actual
 # payloads. Successful boot on these *new* ISO versions is not yet proven.
-if [ "$grub_cpu" = "x86_64" ] || [ "$grub_platform" = "pc" ]
+if [ "$grub_cpu" != "arm64" ]
 then
   source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"
   source "$prefix/menu/iso-boot/gparted.d/generic.cfg"
