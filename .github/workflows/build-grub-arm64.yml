@@ -38,7 +38,7 @@ jobs:
           ./build.sh --target arm64-efi --output ./dist \
             --modules-dir /usr/lib/grub/arm64-efi
           test -s dist/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
-          test -f dist/arm64-efi/data/m/boot/loader/init
+          test -f dist/arm64-efi/esp/m/boot/loader/init
           test "$(sed -n '2p' dist/arm64-efi/stage-info)" = "target=arm64-efi"
           file dist/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
 
