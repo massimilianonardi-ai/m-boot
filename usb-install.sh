@@ -76,12 +76,43 @@ usb_checksum()
     shasum -a 256 "$@"
   fi
 }
-usb_filesize()
+usb_image_hash()
 {
-  if [ "$os" = Linux ]; then stat -c %s "$1"; else stat -f %z "$1"; fi
+  # Inspect the raw image in a stream; avoid a 2 GiB temporary file.
+  gzip -dc "$dist/m-boot-combined.raw.gz" | usb_checksum | awk '{ print $1 }'
+}
+usb_write_stream()
+{
+  # POSIX sh has no pipefail: record decompressor status independently
+  # from dd, so neither failure can be mistaken for a successful flash.
+  stream_status="$usb_work/decompress-status"
+  if
+    (
+      if gzip -dc "$dist/m-boot-combined.raw.gz"
+      then
+        printf 'ok\n' > "$stream_status"
+      else
+        printf 'failed\n' > "$stream_status"
+      fi
+    ) | usb_write
+  then
+    :
+  else
+    usb_fail 'dd failed: selected disk may be partially written'
+  fi
+  [ -f "$stream_status" ] && [ "$(cat "$stream_status")" = ok ] ||
+    usb_fail 'gzip failed while writing: selected disk may be partially written'
+}
+usb_verify_disk()
+{
+  # Authenticate the first 2 GiB actually written before changing GPT.
+  written_hash=$(usb_readback | usb_checksum | awk '{ print $1 }')
+  [ "$written_hash" = "$expected_hash" ] ||
+    usb_fail 'disk readback SHA256 mismatch; refusing GPT/format operations'
 }
 
-# Verify AND stage everything before a destructive operation.
+# Verify compressed distribution and raw image BEFORE selection.
+# Only small metadata and the loader ZIP use temporary disk space.
 usb_info 'verifying published image and loader checksums'
 (cd "$dist" && usb_checksum -c SHA256SUMS) ||
   usb_fail 'published artifact checksum mismatch'
@@ -89,18 +120,18 @@ unzip -tqq "$dist/m-boot-loader.zip" ||
   usb_fail 'published loader ZIP is corrupt'
 cp "$dist/m-boot-loader.zip" "$usb_work/loader.zip" ||
   usb_fail 'cannot stage loader archive'
-cp "$dist/RAW-SHA256SUMS" "$usb_work/RAW-SHA256SUMS" ||
-  usb_fail 'cannot stage raw checksum'
-gzip -dc "$dist/m-boot-combined.raw.gz" > "$usb_work/m-boot-combined.raw" ||
-  usb_fail 'cannot decompress image'
-[ "$(usb_filesize "$usb_work/m-boot-combined.raw")" = 2147483648 ] ||
-  usb_fail 'raw image must be exactly 2 GiB'
-(cd "$usb_work" && usb_checksum -c RAW-SHA256SUMS) ||
-  usb_fail 'decompressed image checksum mismatch'
+gzip -t "$dist/m-boot-combined.raw.gz" ||
+  usb_fail 'compressed image has a CRC/decompression error'
+expected_hash=$(awk '$2 == "m-boot-combined.raw" { print $1 }' "$dist/RAW-SHA256SUMS")
+[ "${#expected_hash}" -eq 64 ] ||
+  usb_fail 'raw disk checksum metadata is invalid'
+raw_hash=$(usb_image_hash)
+[ "$raw_hash" = "$expected_hash" ] ||
+  usb_fail 'decompressed image SHA256 mismatch'
 
 usb_list > "$usb_work/disks"
 count=$(wc -l < "$usb_work/disks" | tr -d '[:space:]')
-[ "$count" -gt 0 ] || usb_fail 'no external physical disks detected'
+[ "$count" -gt 0 ] || usb_fail 'no physical disks detected'
 printf '\nAvailable physical disks (system disks in active use are refused):\n'
 number=0
 while IFS= read -r candidate
@@ -137,9 +168,11 @@ usb_eligible "$usb_disk" || usb_fail 'disk changed before write'
 sudo -v || usb_fail 'administrator authorization failed'
 usb_prepare
 
-usb_info "writing 2 GiB GPT image onto $usb_disk"
-usb_write || usb_fail 'dd failed: target may be partially written'
+usb_info "streaming verified 2 GiB GPT image onto $usb_disk"
+usb_write_stream
 sync
+usb_info 'verifying written image against raw SHA256'
+usb_verify_disk
 usb_info 'relocating GPT and extending partition 3'
 usb_expand_gpt
 usb_refresh
