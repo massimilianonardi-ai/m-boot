@@ -12,10 +12,11 @@ DESCRIPTION
     never overwritten. The image uses GPT and contains:
        1   EF02   10 MiB        BIOS Boot Partition, no filesystem
        2   EF00   512 MiB       EFI System Partition, FAT32
-       3   0700   remainder     exFAT common loader/data
+       3   0700   remainder     exFAT payload/data only
 
-    The ESP has both EFI/BOOT/BOOTX64.EFI and EFI/BOOT/BOOTAA64.EFI.
-    The exFAT filesystem has ONE /m/boot/loader/ tree. The installer is
+    The ESP has both EFI/BOOT/BOOTX64.EFI and EFI/BOOT/BOOTAA64.EFI,
+    plus ONE /m/boot/loader/ tree and three complete runtime module trees.
+    exFAT starts empty, for ISO images, backup and other user data only. The installer is
     called once per EFI target and must confirm the existing loader is
     identical before adding a second EFI binary. The i386-pc bootstrap is
     written with grub-bios-setup ONLY to the loop device backed by the
