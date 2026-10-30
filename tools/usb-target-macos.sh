@@ -36,7 +36,11 @@ usb_eligible()
 {
   usb_plist "$1" || return 1
   [ "$(usb_plist_value "$usb_work/info.plist" WholeDisk)" = true ] || return 1
-  [ "$(usb_plist_value "$usb_work/info.plist" VirtualOrPhysical)" = Physical ]
+  # Some physical macOS disks report VirtualOrPhysical=Unknown in info -plist.
+  # diskutil's physical-only enumeration is the authoritative membership test.
+  diskutil list physical |
+    awk '/^\/dev\/disk[0-9]+ \(.*physical\)/ { print $1 }' |
+    grep -Fx "$1" >/dev/null
 }
 usb_list()
 {
