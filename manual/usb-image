@@ -54,6 +54,114 @@ EXPAND THIRD PARTITION ON A NEWLY FLASHED USB
     uniqueness management for multiple simultaneous copies. A filesystem
     restore must be verified before relying on the USB to boot.
 
+HOST PROCEDURE: VERIFIED IMAGE AND LINUX FLASH
+    These are explicit operator steps, not an unattended installer. Work
+    in the unzipped artifact directory. On Linux, require sha256sum and
+    zstd. Decompress and check the raw 2 GiB image BEFORE choosing a disk:
+
+        sha256sum -c SHA256SUMS
+        zstd -dc m-boot-combined.raw.zst > m-boot-combined.raw
+        sha256sum -c m-boot-combined.raw.sha256
+        stat -c %s m-boot-combined.raw
+
+    The raw size must equal 2147483648 bytes. Confirm physical ownership
+    of ALL existing content on the destination: flashing erases it.
+    Replace the value below with the stable, manually identified symlink
+    to the WHOLE intended disk, not a partition. There is deliberately
+    no default destination or automatic disk-selection command.
+
+        DISK=/dev/disk/by-id/REPLACE-WITH-VERIFIED-WHOLE-DISK
+        test -b "$DISK"
+        lsblk -o NAME,PATH,MODEL,SIZE,TYPE,TRAN,LOG-SEC,MOUNTPOINTS "$DISK"
+        sudo blockdev --getss "$DISK"
+        sudo blockdev --getsize64 "$DISK"
+
+    Confirm the logical sector size is 512, the device has at least
+    2147483648 bytes, NONE of its partitions is mounted/in use, and
+    the device is NOT the running OS disk. Inspect again before executing
+    this explicitly destructive command:
+
+        sudo dd if=m-boot-combined.raw of="$DISK" bs=4M conv=fsync status=progress
+        sync
+
+    Do not run dd against a partition. Allow the OS to re-read the
+    partition table before manipulating the freshly flashed device.
+
+HOST PROCEDURE: macOS FLASH
+    On macOS (including Apple Silicon), use diskutil list and diskutil
+    info to positively identify a 512-byte-logical-sector physical disk
+    and check all mounted volumes. After independently checking artifact
+    checksums and decompressing the raw file using suitable installed
+    tools, replace diskN/rdiskN with the SAME explicitly selected whole
+    disk. The following is a template, not an automatically selected disk:
+
+        diskutil list
+        diskutil info /dev/diskN
+        sudo diskutil unmountDisk /dev/diskN
+        sudo dd if=m-boot-combined.raw of=/dev/rdiskN bs=4m
+        sync
+        diskutil eject /dev/diskN
+
+    This only flashes the raw image. The partition recreation below
+    requires a Linux environment with access to the actual physical disk
+    (for example a Linux host or a carefully configured passthrough VM).
+    A normal file-only VM disk does not modify the connected USB device.
+
+HOST PROCEDURE: CONSUME REMAINING SPACE ON LINUX
+    Run ONLY immediately after initial flashing, BEFORE writing any
+    personal data. The exFAT filesystem copied from the 2 GiB image
+    CANNOT simply be extended using standard GParted/exfatprogs.
+    The operation below DESTROYS AND RECREATES partition 3's filesystem.
+    Keep partitions 1 and 2 exactly where they are.
+
+    With the same verified whole-disk DISK variable and all partitions
+    unmounted, move the copied backup GPT to the actual disk end:
+
+        sudo sgdisk -e "$DISK"
+        sudo sgdisk --verify "$DISK"
+        sudo sgdisk -i 1 "$DISK"
+        sudo sgdisk -i 2 "$DISK"
+        sudo sgdisk -i 3 "$DISK"
+
+    Record partition 3's original FIRST LBA and confirm it agrees
+    with the image layout (1071104 for this 2 GiB/512-byte image).
+    This command reads the value; the explicit check refuses a different
+    layout, rather than risk operating on an unrelated disk:
+
+        start=$(sudo sgdisk -i 3 "$DISK" | sed -n 's/^First sector: \\([0-9][0-9]*\\).*$/\\1/p')
+        test "$start" = 1071104
+
+    Now delete/recreate ONLY the partition-3 GPT entry, retaining its
+    first sector but extending its end to the last usable disk sector:
+
+        sudo sgdisk -d 3 -n 3:"$start":0 -t 3:0700 "$DISK"
+        sudo sgdisk --verify "$DISK"
+        sudo partprobe "$DISK"
+        sudo udevadm settle
+        lsblk -o NAME,PATH,SIZE,TYPE,LOG-SEC,MOUNTPOINTS "$DISK"
+
+    If partition re-reading fails, STOP: safely reattach/reboot and
+    inspect the exact new table before proceeding. Independently select
+    the whole disk's newly recreated PARTITION 3, never partition 1/2.
+    It must have the recorded first sector and now reach the disk end.
+    Replace this placeholder with the verified partition-3 block path:
+
+        PART3=/dev/disk/by-id/REPLACE-WITH-VERIFIED-WHOLE-DISK-part3
+        test -b "$PART3"
+        sudo mkfs.exfat -n MBOOTDATA "$PART3"
+        mountdir=$(mktemp -d)
+        sudo mount "$PART3" "$mountdir"
+        zstd -dc m-boot-loader.tar.zst | sudo tar -C "$mountdir" -xf -
+        sudo test -s "$mountdir/m/boot/loader/init"
+        sudo umount "$mountdir"
+        rmdir "$mountdir"
+
+    Check filesystem integrity and the final partition table before
+    use. The original ESP and BIOS Boot Partition must be unchanged.
+    Cloned disk/partition GUIDs should be made unique when simultaneous
+    cloned media will be attached; deliberate GUID changes must be checked
+    against any boot configuration that pins identifiers.
+
 VALIDATION
     This workflow checks that real GRUB builds and GPT preparation succeed.
     It does not establish physical boot or automatic exFAT growth. Test
