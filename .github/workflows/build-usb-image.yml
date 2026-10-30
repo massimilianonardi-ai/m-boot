@@ -68,6 +68,46 @@ jobs:
             printf 'flash_is_destructive=yes\n'
             printf 'exfat_inplace_grow_supported=no\n'
           } > "$pub/BUILD-INFO.txt"
+      - name: Simulate larger USB, preserve boot partitions, recreate exFAT and restore loader
+        run: |
+          set -eu
+          raw="$RUNNER_TEMP/m-boot-usb-build/m-boot-combined.raw"
+          expanded="$RUNNER_TEMP/m-boot-expanded-4g.raw"
+          pub="$RUNNER_TEMP/m-boot-publish"
+          sudo cp --sparse=always "$raw" "$expanded"
+          sudo truncate -s 4G "$expanded"
+          start=$(sudo sgdisk --info=3 "$expanded" | awk '/First sector:/ {print $3}')
+          test "$start" = 1071104
+          sudo sgdisk -e "$expanded"
+          sudo sgdisk --delete=3 --new=3:"$start":0 --typecode=3:0700 "$expanded"
+          sudo sgdisk --verify "$expanded"
+          sudo cmp -n 440 "$raw" "$expanded"
+          sudo cmp -n 10485760 -i 1048576:1048576 "$raw" "$expanded"
+          sudo cmp -n 536870912 -i 11534336:11534336 "$raw" "$expanded"
+          loop=
+          mnt=$(mktemp -d "$RUNNER_TEMP/m-boot-data-mount.XXXXXXXX")
+          cleanup() {
+            if mountpoint -q "$mnt"; then sudo umount "$mnt"; fi
+            if [ -n "$loop" ]; then sudo losetup -d "$loop"; fi
+            rmdir "$mnt" 2>/dev/null || :
+          }
+          trap cleanup EXIT
+          loop=$(sudo losetup --find --show --partscan "$expanded")
+          test -b "$loop"p3
+          sudo mkfs.exfat -n MBOOTDATA "$loop"p3
+          sudo mount -t exfat "$loop"p3 "$mnt"
+          zstd -dc "$pub/m-boot-loader.tar.zst" | sudo tar -C "$mnt" -xf -
+          sudo test -s "$mnt/m/boot/loader/init"
+          sudo test -s "$mnt/m/boot/loader/i386-pc/normal.mod"
+          sudo test -s "$mnt/m/boot/loader/x86_64-efi/normal.mod"
+          sudo test -s "$mnt/m/boot/loader/arm64-efi/normal.mod"
+          sync
+          sudo umount "$mnt"
+          sudo fsck.exfat -n "$loop"p3
+          sudo losetup -d "$loop"
+          loop=
+          sudo sgdisk --verify "$expanded"
+          echo "Successfully simulated GPT expansion, exFAT recreation and loader restore on 4GiB image"
       - name: Publish compressed disk image, loader backup and checksums
         uses: actions/upload-artifact@v4
         with:
