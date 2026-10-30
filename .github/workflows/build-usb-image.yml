@@ -47,10 +47,10 @@ jobs:
           stage="$root/stages/i386-pc"
           pub="$RUNNER_TEMP/m-boot-publish"
           mkdir -p "$pub"
-          test -s "$stage/data/m/boot/loader/init"
-          printf '%s  m-boot-combined.raw\n' "$(sha256sum "$raw" | awk '{print $1}')" \
+          sudo test -s "$stage/data/m/boot/loader/init"
+          printf '%s  m-boot-combined.raw\n' "$(sudo sha256sum "$raw" | awk '{print $1}')" \
             > "$pub/m-boot-combined.raw.sha256"
-          zstd -3 -T0 -c "$raw" > "$pub/m-boot-combined.raw.zst"
+          sudo zstd -3 -T0 -c "$raw" > "$pub/m-boot-combined.raw.zst"
           sudo tar -C "$stage/data" -cf - m/boot/loader | \
             zstd -3 -T0 -c > "$pub/m-boot-loader.tar.zst"
           zstd -t "$pub/m-boot-combined.raw.zst"
@@ -61,7 +61,7 @@ jobs:
           {
             printf 'source_commit=%s\n' "$GITHUB_SHA"
             printf 'host=%s\n' "$(uname -m)"
-            printf 'grub=%s\n' "$(./tools/grub-mkimage --version)"
+            printf 'grub=%s\n' "$(./tools/grub-mkimage --version | awk '/\(GRUB\)/ { print $NF }')"
             printf 'image_bytes=%s\n' "$(stat -c %s "$raw")"
             printf 'target_sector_bytes=512\n'
             printf 'targets=i386-pc,x86_64-efi,arm64-efi\n'
