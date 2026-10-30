@@ -17,12 +17,7 @@ usb_list()
 }
 usb_eligible()
 {
-  [ "$(lsblk -dnro TYPE "$1" 2>/dev/null)" = disk ] || return 1
-  transport=$(lsblk -dnro TRAN "$1" | tr -d '[:space:]')
-  removable=$(lsblk -dnro RM "$1" | tr -d '[:space:]')
-  hotplug=$(lsblk -dnro HOTPLUG "$1" | tr -d '[:space:]')
-  [ "$transport" = usb ] || [ "$transport" = thunderbolt ] ||
-    [ "$removable" = 1 ] || [ "$hotplug" = 1 ]
+  [ "$(lsblk -dnro TYPE "$1" 2>/dev/null)" = disk ]
 }
 usb_brief()
 {
