@@ -7,6 +7,7 @@ on:
       - tools/usb-target-linux.sh
       - tools/usb-target-macos.sh
       - .github/workflows/validate-usb-installer.yml
+      - images/**
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +30,37 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             gdisk exfatprogs parted util-linux
+      - name: Verify public disk image has complete ESP loader and empty exFAT payload
+        run: |
+          set -eu
+          grep -Fx 'loader_location=esp' images/BUILD-INFO.txt
+          gzip -dc images/m-boot-combined.raw.gz > "$RUNNER_TEMP/public.raw"
+          sha256sum "$RUNNER_TEMP/public.raw" | awk '{ print $1 }' > "$RUNNER_TEMP/public.hash"
+          awk '{ print $1 }' images/RAW-SHA256SUMS > "$RUNNER_TEMP/expected.hash"
+          cmp "$RUNNER_TEMP/public.hash" "$RUNNER_TEMP/expected.hash"
+          loop=
+          esp=$(mktemp -d)
+          data=$(mktemp -d)
+          cleanup() {
+            if mountpoint -q "$esp"; then sudo umount "$esp"; fi
+            if mountpoint -q "$data"; then sudo umount "$data"; fi
+            if [ -n "$loop" ]; then sudo losetup -d "$loop"; fi
+            rmdir "$esp" "$data" 2>/dev/null || :
+          }
+          trap cleanup EXIT
+          loop=$(sudo losetup --find --show --partscan "$RUNNER_TEMP/public.raw")
+          sudo mount -t vfat -o ro "$loop"p2 "$esp"
+          sudo mount -t exfat -o ro "$loop"p3 "$data"
+          sudo test -s "$esp/m/boot/loader/init"
+          sudo test -s "$esp/EFI/BOOT/BOOTX64.EFI"
+          sudo test -s "$esp/EFI/BOOT/BOOTAA64.EFI"
+          for target in i386-pc x86_64-efi arm64-efi
+          do
+            sudo test -s "$esp/m/boot/loader/$target/normal.mod"
+          done
+          sudo test ! -e "$data/m/boot/loader"
+          sudo test -z "$(sudo find "$data" -mindepth 1 -print -quit)"
+          echo 'PASS: public combined image contains complete ESP loader; exFAT payload is empty'
       - name: Exercise real interactive preflight with 16 MiB file quota
         run: |
           set -eu
