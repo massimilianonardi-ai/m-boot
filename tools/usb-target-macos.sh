@@ -23,7 +23,7 @@ usb_eligible()
 }
 usb_list()
 {
-  diskutil list external physical |
+  diskutil list physical |
     awk '/^\/dev\/disk[0-9]+ / { print $1 }' |
     while IFS= read -r device
     do
