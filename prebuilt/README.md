@@ -40,7 +40,7 @@ Archive structure:
   stage-info
   esp/EFI/BOOT/BOOT*.EFI (UEFI targets)
   bios/core.img (i386-pc target)
-  data/m/boot/loader/
+  esp/m/boot/loader/
 grub-modules/<TARGET>/           complete Ubuntu GRUB target directory
 <architecture>-build-info.txt   source_commit, runner architecture, package versions
 BOOT*.EFI.sha256 (UEFI targets)  checksum of the compiled EFI image
@@ -83,7 +83,7 @@ explicitly chosen overrides.
 
 The build uses the archive's target modules to compile the essential core
 image, then stages the complete module directories for **all three** GRUB
-targets at `data/m/boot/loader/<TARGET>/`. When the embedded init finds
+targets at `esp/m/boot/loader/<TARGET>/`. When the embedded init finds
 the loader, it changes `prefix` to `(<device>)/m/boot/loader`; subsequent
 `insmod` requests are served from its `<TARGET>/` subdirectory. The
 existing GUI and future OS boot functionality are intentionally dynamic.
