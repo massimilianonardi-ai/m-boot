@@ -60,7 +60,7 @@ then
 else
   [ -s "$stage/esp/EFI/BOOT/$efi" ] || fail "EFI image missing: $efi" 12
 fi
-[ "$scenario" = recovery ] || [ -f "$stage/data/m/boot/loader/init" ] || fail 'external loader init missing from stage' 13
+[ "$scenario" = recovery ] || [ -f "$stage/esp/m/boot/loader/init" ] || fail 'ESP loader init missing from stage' 13
 [ "$(id -u)" -eq 0 ] || fail 'must run as root (loopback, mkfs, mount); no physical device is used' 14
 for tool in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt
 do
@@ -136,8 +136,8 @@ if [ "$target" = i386-pc ]
 then
   if [ "$scenario" = loader ]
   then
-    mkdir -p "$work/data/m/boot" || fail 'cannot create external loader parent' 35
-    cp -R "$stage/data/m/boot/loader" "$work/data/m/boot/" || fail 'cannot copy BIOS external loader fixture' 36
+    mkdir -p "$work/esp/m/boot" || fail 'cannot create ESP loader parent' 35
+    cp -R "$stage/esp/m/boot/loader" "$work/esp/m/boot/" || fail 'cannot copy BIOS ESP loader fixture' 36
   fi
   # This is the ONLY boot-sector write, and only to the verified image loop.
   grub-bios-setup --directory="$bios_modules" \
