@@ -1,0 +1,8 @@
+source_commit=c4fd954fc99809a0ff4317125a0351660c351146
+host=x86_64
+grub=2.12-1ubuntu7.3
+image_bytes=2147483648
+target_sector_bytes=512
+targets=i386-pc,x86_64-efi,arm64-efi
+flash_is_destructive=yes
+exfat_inplace_grow_supported=no
