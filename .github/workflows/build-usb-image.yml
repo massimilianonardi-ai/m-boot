@@ -96,7 +96,7 @@ jobs:
           test -b "$loop"p3
           sudo mkfs.exfat -n MBOOTDATA "$loop"p3
           sudo mount -t exfat "$loop"p3 "$mnt"
-          zstd -dc "$pub/m-boot-loader.tar.zst" | sudo tar -C "$mnt" -xf -
+          zstd -dc "$pub/m-boot-loader.tar.zst" | sudo tar --no-same-owner --no-same-permissions -C "$mnt" -xf -
           sudo test -s "$mnt/m/boot/loader/init"
           sudo test -s "$mnt/m/boot/loader/i386-pc/normal.mod"
           sudo test -s "$mnt/m/boot/loader/x86_64-efi/normal.mod"
