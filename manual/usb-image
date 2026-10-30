@@ -45,7 +45,7 @@ EXPAND THIRD PARTITION ON A NEWLY FLASHED USB
     end at the actual end of the disk, and type 0700. After kernel
     partition re-probe, format ONLY the new third partition with exFAT
     (DESTRUCTIVE to partition 3), then restore the loader:
-        zstd -dc m-boot-loader.tar.zst | tar -C <mounted-exfat-root> -xf -
+        zstd -dc m-boot-loader.tar.zst | tar --no-same-owner --no-same-permissions -C <mounted-exfat-root> -xf -
     The archive contains m/boot/loader and no user data.
 
     Never perform this on an existing data-bearing disk. Do not move the
@@ -128,7 +128,7 @@ HOST PROCEDURE: CONSUME REMAINING SPACE ON LINUX
     This command reads the value; the explicit check refuses a different
     layout, rather than risk operating on an unrelated disk:
 
-        start=$(sudo sgdisk -i 3 "$DISK" | sed -n 's/^First sector: \\([0-9][0-9]*\\).*$/\\1/p')
+        start=$(sudo sgdisk -i 3 "$DISK" | sed -n 's/^First sector: \([0-9][0-9]*\).*$/\1/p')
         test "$start" = 1071104
 
     Now delete/recreate ONLY the partition-3 GPT entry, retaining its
@@ -151,7 +151,7 @@ HOST PROCEDURE: CONSUME REMAINING SPACE ON LINUX
         sudo mkfs.exfat -n MBOOTDATA "$PART3"
         mountdir=$(mktemp -d)
         sudo mount "$PART3" "$mountdir"
-        zstd -dc m-boot-loader.tar.zst | sudo tar -C "$mountdir" -xf -
+        zstd -dc m-boot-loader.tar.zst | sudo tar --no-same-owner --no-same-permissions -C "$mountdir" -xf -
         sudo test -s "$mountdir/m/boot/loader/init"
         sudo umount "$mountdir"
         rmdir "$mountdir"
