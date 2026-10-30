@@ -19,7 +19,6 @@ usb_eligible()
 {
   usb_plist "$1" || return 1
   [ "$(usb_plist_value "$usb_work/info.plist" WholeDisk)" = true ] || return 1
-  [ "$(usb_plist_value "$usb_work/info.plist" Internal)" = false ] || return 1
   [ "$(usb_plist_value "$usb_work/info.plist" VirtualOrPhysical)" = Physical ]
 }
 usb_list()
