@@ -1,0 +1,60 @@
+m-boot Ventoy / Ubuntu exFAT differential experiment
+
+PURPOSE
+    Compare m-boot's legacy-BIOS Ubuntu 26.04.1 failure against official
+    Ventoy 1.1.18 with identical ISO bytes on exFAT. Do not touch the USB.
+    This is experimental and does not yet prove any ISO boot compatibility.
+
+INPUTS
+    ventoy-1.1.18-linux.tar.gz
+      SHA256 d86ff9de63d94c8b8f1f6b14d23c55af4b88e8207bf2893890892a6a97b1ad54
+      https://www.ventoy.net/en/download.html
+    ubuntu-26.04.1-desktop-amd64.iso
+      SHA256 601e30fbf5d97759367c632e2c33630665039b7e2158fd068403da3ccf1bda1f
+      https://releases.ubuntu.com/26.04.1/SHA256SUMS
+
+PREPARE
+    Linux x86_64; requires sudo, losetup, lsblk, blkid, mount, partprobe,
+    parted, GNU coreutils, tar and enough free space (ISO ~6 GiB).
+    Obtain the official Ventoy archive separately, not a git source tree.
+    Use the exact operator ISO; a checksum mismatch is a hard failure.
+
+    ./tests/ventoy-ubuntu-exfat.sh prepare \
+      --iso /path/to/ubuntu-26.04.1-desktop-amd64.iso \
+      --ventoy-tar /path/to/ventoy-1.1.18-linux.tar.gz \
+      --output /path/to/existing-disposable-directory
+
+    A NEW private 12 GiB sparse disk image receives Ventoy GPT/exFAT through
+    an explicitly verified /dev/loopN device. The script has NO argument
+    for selecting any physical block device. The input ISO is copied to
+    /m/boot/iso/ and readback-hashed. It prints the resulting raw disk path,
+    alongside experiment.txt and results.md. It does not remove the image;
+    delete the experiment directory only after preserving results.
+
+NORMAL BOOT
+    ./tests/ventoy-ubuntu-exfat.sh boot \
+      --disk /path/to/ventoy-ubuntu.XXXXXXXX/ventoy-bios.raw \
+      --mode normal
+
+    QEMU parameters: -machine pc -accel tcg -m 2048 -smp 2, BIOS x86_64,
+    IDE disk and -snapshot. Select ISO and Normal mode in the Ventoy menu.
+    Confirm a genuinely usable Ubuntu live system; splash/BusyBox is FAIL.
+
+GRUB2 BOOT, ONLY AFTER NORMAL FAILURE
+    Repeat with --mode grub2; select GRUB2 mode in Ventoy's secondary menu,
+    or press Ctrl+r at the main menu before choosing the ISO. Report GRUB2
+    separately; it cannot retroactively qualify normal mode as PASS.
+
+EVIDENCE
+    Capture firmware/menu and post-kernel state. On success record
+    /proc/cmdline, findmnt /, lsblk -f, mount and /dev/mapper contents.
+    On failure record BusyBox /proc/cmdline, /proc/filesystems, blkid,
+    device-mapper devices and exact errors. Determine whether access to
+    the ISO uses a recovered block mapping rather than exFAT mounting.
+    Compare against the previously observed m-boot BusyBox failure.
+    Never infer general ISO compatibility from one successful example.
+
+BOUNDARIES
+    Does not modify any m-boot production menu, ESP, physical USB or
+    exFAT partition. Vendor GPLv3+ code is evaluated only as a product
+    dependency; do not copy it into m-boot without license review.
