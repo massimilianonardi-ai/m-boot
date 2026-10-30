@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Check out m-boot
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install GRUB ARM64 modules and build tools
         run: |
@@ -85,5 +87,20 @@ jobs:
             echo 'ARM64 archive already matches the committed package'
           else
             git commit -m 'Store built GRUB ARM64 stage and modules in repository'
-            git push origin HEAD:main
+            # Generated archives for different architectures can publish
+            # concurrently. Merge new remote commits forward; never force-push.
+            published=no
+            attempt=0
+            while [ "$attempt" -lt 5 ]
+            do
+              attempt=$((attempt + 1))
+              git fetch origin main
+              git merge --no-edit origin/main
+              if git push origin HEAD:main
+              then
+                published=yes
+                break
+              fi
+            done
+            test "$published" = yes
           fi
