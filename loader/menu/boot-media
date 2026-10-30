@@ -22,7 +22,41 @@ then
   do
     if [ -d "$boot_media_candidate/m/boot/iso" ]
     then
-      regexp --set=boot_media_device '^\\(([^)]*)\\)$' "$boot_media_candidate"
+      regexp --set=boot_media_device '^\(([^)]*)\) "$boot_media_candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$boot_media_device" ]
+then
+  menuentry "No external boot media found" {
+    echo "No /m/boot/iso directory is accessible on external filesystems."
+    echo "Check the exFAT MBOOTDATA partition and GRUB filesystem support."
+    sleep --interruptible 30
+  }
+else
+  # Make the ISO paths Linux-initramfs friendly: absolute paths *within*
+  # the exFAT filesystem, not GRUB "(hdX,gptY)/..." device-qualified paths.
+  set root="$boot_media_device"
+  set isopath="/m/boot/iso"
+  set efipath="/m/boot/efi"
+  export isopath efipath
+
+  submenu "Recovery and backup" {
+    source "$prefix/menu/boot-media-recovery"
+  }
+  submenu "Live systems and installers" {
+    source "$prefix/menu/boot-media-install"
+  }
+  submenu "Hardware diagnostics" {
+    source "$prefix/menu/boot-media-diagnostics"
+  }
+  submenu "Network boot" {
+    source "$prefix/menu/boot-media-network"
+  }
+fi
+ "$boot_media_candidate"
       break
     fi
   done
