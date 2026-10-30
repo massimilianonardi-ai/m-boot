@@ -77,10 +77,16 @@ USE
     ./usb-install.sh
 
     The installer verifies both compressed-distribution and decompressed
-    raw-disk SHA256, stages the image and loader outside the target disk,
-    lists numbered disks, shows full selected-device details, and waits
-    for typed authorization. No manual dd, GPT edit or filesystem
-    expansion commands are necessary after selection.
+    raw-disk SHA256 by streaming gzip into a checksum calculation; it
+    DOES NOT materialize a 2 GiB raw image in /tmp (or require 2 GiB of
+    host disk quota). Only small control files and the ~12 MiB loader ZIP
+    are staged temporarily. It lists numbered disks, shows full selected-
+    device details, and waits for typed authorization. Following consent,
+    gzip is streamed directly into dd. Before altering GPT/partition 3,
+    the first 2 GiB are read back from the device and verified against
+    RAW-SHA256SUMS. Any stream, dd or readback failure aborts without
+    formatting. No manual dd, GPT edit or filesystem expansion commands
+    are necessary after selection.
 
 VALIDATION LIMITS
     GitHub CI validates real GRUB image construction, GPT preparation,
