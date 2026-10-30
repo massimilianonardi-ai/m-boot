@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install a staged UEFI m-boot image on two existing mounted filesystems.
+# Install a staged UEFI m-boot image and its loader on the FAT32 ESP.
 set -eu
 
 usage()
@@ -8,7 +8,7 @@ usage()
 Usage: install.sh --stage DIR --esp DIR --data DIR [--apply] [--allow-directory]
 
 Without --apply: show an installation plan, make NO changes.
---apply: copy only into missing EFI/BOOT/BOOT*.EFI and m/boot/loader paths.
+--apply: copy only into missing EFI/BOOT/BOOT*.EFI and ESP m/boot/loader paths.
          Existing EFI files are NEVER overwritten. An existing external
          loader directory is reused only when its content is identical.
 --allow-directory: allow ordinary directories rather than mounted vfat/exfat
@@ -79,7 +79,7 @@ case "$targetline" in
 esac
 
 source_efi="$stage/esp/EFI/BOOT/$efi"
-source_loader="$stage/data/m/boot/loader"
+source_loader="$stage/esp/m/boot/loader"
 [ -s "$source_efi" ] && [ ! -L "$source_efi" ] || fail "missing staged EFI image: $source_efi" 21
 [ -f "$source_loader/init" ] && [ ! -L "$source_loader/init" ] || fail 'missing external loader init in stage' 22
 [ -z "$(find "$source_loader" -type l -print -quit)" ] || fail 'staged external loader contains symlinks' 23
@@ -94,12 +94,12 @@ then
 fi
 
 # Never follow an installed-directory symlink or replace an existing boot entry.
-for item in "$esp/EFI" "$esp/EFI/BOOT" "$data/m" "$data/m/boot" "$data/m/boot/loader"
+for item in "$esp/EFI" "$esp/EFI/BOOT" "$esp/m" "$esp/m/boot" "$esp/m/boot/loader"
 do
   [ ! -L "$item" ] || fail "destination contains a symlink: $item" 29
 done
 boot_file="$esp/EFI/BOOT/$efi"
-loader_dir="$data/m/boot/loader"
+loader_dir="$esp/m/boot/loader"
 [ ! -e "$boot_file" ] && [ ! -L "$boot_file" ] || fail "existing EFI boot file will not be overwritten: $boot_file" 30
 
 # A second UEFI architecture may share an identical external loader.
@@ -134,7 +134,7 @@ then
 fi
 
 mkdir -p -- "$esp/EFI/BOOT" || fail 'cannot create EFI/BOOT destination' 32
-mkdir -p -- "$data/m/boot" || fail 'cannot create external loader parent directory' 33
+mkdir -p -- "$esp/m/boot" || fail 'cannot create ESP loader parent directory' 33
 if [ "$install_loader" = yes ]
 then
   cp -R -- "$source_loader" "$loader_dir" || fail "failed to stage external loader at $loader_dir (may be partial)" 34
