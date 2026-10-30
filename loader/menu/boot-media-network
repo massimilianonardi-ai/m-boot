@@ -1,0 +1,46 @@
+# EFI chainloading from an exFAT-backed GRUB filesystem is experimental:
+# successful discovery of the file does not guarantee firmware can load it.
+if [ "$grub_platform" = "efi" ]
+then
+  if [ "$grub_cpu" = "x86_64" ]
+  then
+    for image in "$efipath"/netboot/netboot.xyz.efi \
+      "$efipath"/netboot/netboot.xyz-snp.efi \
+      "$efipath"/netboot/netboot.xyz-snponly.efi
+    do
+      if [ -f "$image" ]
+      then
+        menuentry "$image (experimental UEFI chainload)" "$image" {
+          chainloader "$2"
+        }
+      fi
+    done
+  fi
+  if [ "$grub_cpu" = "arm64" ]
+  then
+    for image in "$efipath"/netboot/netboot.xyz-arm64.efi \
+      "$efipath"/netboot/netboot.xyz-arm64-snp.efi \
+      "$efipath"/netboot/netboot.xyz-arm64-snponly.efi
+    do
+      if [ -f "$image" ]
+      then
+        menuentry "$image (experimental UEFI chainload)" "$image" {
+          chainloader "$2"
+        }
+      fi
+    done
+  fi
+fi
+for image in "$isopath"/netboot.xyz-*.iso \
+  "$efipath"/netboot/*.kpxe "$efipath"/netboot/*.lkrn
+do
+  if [ -f "$image" ]
+  then
+    menuentry "$image (boot recipe pending)" "$image" {
+      echo "Network-boot payload present:"
+      echo "$2"
+      echo "Direct GRUB loading not yet validated for this format."
+      sleep --interruptible 30
+    }
+  fi
+done

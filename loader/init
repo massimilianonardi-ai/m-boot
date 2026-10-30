@@ -15,6 +15,13 @@ else
   echo "m-loader: GUI initializer missing; using GRUB console."
 fi
 
+menuentry "Bootable media" --hotkey=t {
+  # Only the external-media submenu changes root to its data partition.
+  set boot_media_saved_root="$root"
+  configfile "$prefix/menu/boot-media"
+  set root="$boot_media_saved_root"
+}
+
 menuentry "Inspect boot context" --hotkey=i {
   echo "m-loader: external init executed"
   echo "cmdpath=$cmdpath"

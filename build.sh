@@ -143,7 +143,9 @@ fi
 
 if command -v "$script_checker" >/dev/null 2>&1
 then
-  for script in "$root/boot/bootstrap-memdisk.sh" "$root/boot/init" "$root/boot/recovery" "$root/loader/init" "$root/loader/menu/gui"
+  for script in "$root/boot/bootstrap-memdisk.sh" "$root/boot/init" "$root/boot/recovery" \
+    "$root/loader/init" "$root/loader/menu/gui" \
+    "$root/loader/menu/boot-media" "$root"/loader/menu/boot-media-*
   do
     "$script_checker" "$script" || fail "GRUB script syntax check failed using $script_checker: $script" 28
   done

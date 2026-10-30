@@ -1,0 +1,18 @@
+# Reuse the existing Ubuntu loopback.cfg recipe, not the historical
+# Windows/NaVi image menu. Proxmox/TrueNAS/OPNsense need separate validation.
+source "$prefix/menu/iso-boot/ubuntu.d/desktop-generic.cfg"
+
+for image in "$isopath"/proxmox-ve_*.iso \
+  "$isopath"/proxmox-backup-server_*.iso \
+  "$isopath"/TrueNAS-SCALE-*.iso \
+  "$isopath"/OPNsense-*.iso
+do
+  if [ -f "$image" ]
+  then
+    menuentry "$image (boot recipe pending)" "$image" {
+      echo "Installer boot recipe not yet verified for:"
+      echo "$2"
+      sleep --interruptible 30
+    }
+  fi
+done

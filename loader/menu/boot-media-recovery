@@ -1,0 +1,24 @@
+# Only use historical recipes whose filename patterns match the actual
+# payloads. Successful boot on these *new* ISO versions is not yet proven.
+if [ "$grub_cpu" = "x86_64" ] || [ "$grub_platform" = "pc" ]
+then
+  source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"
+  source "$prefix/menu/iso-boot/gparted.d/generic.cfg"
+  source "$prefix/menu/iso-boot/grml.d/generic.cfg"
+fi
+
+# The remaining current images have no validated matching recipe.
+for image in "$isopath"/systemrescue-*.iso "$isopath"/rescuezilla-*.iso \
+  "$isopath"/finnix-*.iso "$isopath"/HBCD_PE_*.iso \
+  "$isopath"/supergrub2-*.iso "$isopath"/grml*-arm64.iso
+do
+  if [ -f "$image" ]
+  then
+    menuentry "$image (boot recipe pending)" "$image" {
+      echo "Boot recipe not yet verified for:"
+      echo "$2"
+      echo "A checksummed ISO is not automatically bootable using GRUB loopback."
+      sleep --interruptible 30
+    }
+  fi
+done

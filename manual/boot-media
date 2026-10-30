@@ -1,0 +1,42 @@
+m-boot bootable-media menu
+
+PURPOSE
+    The external ESP-resident loader offers "Bootable media" in its main
+    menu, with Recovery and backup, Live systems and installers, Hardware
+    diagnostics, and Network boot categories. It discovers the data
+    partition by the MBOOTDATA label or /m/boot/iso, and presents files
+    without changing exFAT or requiring a rebuild for payload copies.
+
+DATA ROOT (OPERATOR-SELECTED, 2026-10-30)
+    exFAT: /m/boot/iso/ (flat ISO list)
+           /m/boot/efi/memtest/ (unpacked memtest86+ binaries)
+           /m/boot/efi/netboot/ (netboot.xyz EFI, PXE and Linux images)
+    ESP:   /m/boot/loader/ (all GRUB scripts, menus, modules and themes)
+
+MENU ENTRY SUPPORT LEVELS
+    Existing user-maintained scripts are retained. Recipes under
+    loader/menu/iso-boot/ from the historical Multiboot USB project
+    (https://github.com/aguslr/multibootusb, mbusb.d/) are reused only
+    for selected matching images (Clonezilla, GParted, Grml, Ubuntu).
+    Their compatibility with the user's 2026 ISO revisions has NOT
+    been established by firmware boot tests.
+
+    Other visible payload entries say "boot recipe pending" and only
+    identify the file; they do not pretend to boot it. EFI netboot.xyz
+    choices on matching UEFI architecture are marked experimental because
+    UEFI/GRUB chainloading from exFAT is not yet validated. BIOS PXE
+    images and Memtest86+ binaries are not guessed to be EFI executables.
+
+VERIFICATION
+    Build and script syntax checks are not equivalent to a firmware boot.
+    Test actual menu navigation on BIOS x86_64, UEFI x86_64 and UEFI ARM64.
+    Validate each selected ISO family through the running target system
+    or installer, not just the first GRUB menu. Some kernels/initramfs
+    may lack the needed exFAT/ISO loop access.
+
+    Editing ESP loader scripts after media provisioning requires updating
+    the ESP loader; the original USB need not be destructively reflashed.
+    The Git-tracked public disk image does not update an already-flashed
+    USB device by itself.
+
+    No historical Windows/NaVi recipes have been re-enabled.
