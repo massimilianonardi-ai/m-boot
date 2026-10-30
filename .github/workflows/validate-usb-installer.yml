@@ -46,4 +46,12 @@ jobs:
           do
             plutil -extract "$key" raw -o - "$RUNNER_TEMP/disk-info.plist"
           done
-          echo "Validated the macOS native metadata queries without disk writes"
+          # Exercise the actual platform adapter's read-only selection logic.
+          usb_work="$RUNNER_TEMP"
+          usb_fail() { printf '%s\n' "$1" >&2; exit 1; }
+          . ./tools/usb-target-macos.sh
+          usb_eligible "$disk"
+          usb_list | grep -Fx "$disk"
+          test "$(usb_sector "$disk")" = 512
+          test "$(usb_identity "$disk")" = "$(basename "$disk")"
+          echo "Validated the macOS native metadata and physical disk enumeration without disk writes"
