@@ -2,7 +2,7 @@
 # Linux-specific operations sourced by usb-install.sh; no independent CLI.
 usb_require()
 {
-  for cmd in lsblk blockdev sgdisk partprobe udevadm mkfs.exfat mount umount fsck.exfat findmnt
+  for cmd in lsblk blockdev sgdisk partprobe udevadm mkfs.exfat mount umount fsck.exfat findmnt swapon
   do
     command -v "$cmd" >/dev/null 2>&1 || usb_fail "missing Linux tool: $cmd"
   done
@@ -43,14 +43,36 @@ usb_prepare()
 {
   [ "$(usb_size "$usb_disk")" = "$usb_bytes" ] || usb_fail 'disk size changed'
   [ "$(usb_identity "$usb_disk")" = "$usb_id" ] || usb_fail 'disk identity changed'
-  # Reject active host resources rather than unmounting a system filesystem.
+  # Only after explicit confirmation: unmount ordinary data volumes. Never
+  # unmount host system paths, active swap, or the checkout running this script.
+  lsblk -pnro NAME "$usb_disk" > "$usb_work/children" ||
+    usb_fail 'cannot inspect child devices'
+  swapon --noheadings --show=NAME > "$usb_work/swaps" ||
+    usb_fail 'cannot inspect active swap'
+  while IFS= read -r node
+  do
+    if grep -Fx "$node" "$usb_work/swaps" >/dev/null
+    then
+      usb_fail "active swap prevents imaging: $node"
+    fi
+    findmnt -rn -S "$node" -o TARGET > "$usb_work/mounts" || :
+    while IFS= read -r where
+    do
+      [ -n "$where" ] || continue
+      case "$where" in
+        /media/*|/run/media/*|/mnt/*) ;;
+        *) usb_fail "refusing to unmount system or non-data location: $where" ;;
+      esac
+      case "$root/" in
+        "$where/"*) usb_fail "repository is on selected disk: $where" ;;
+      esac
+      usb_info "unmounting selected disk filesystem: $where"
+      sudo umount "$node" || usb_fail "cannot unmount $where on $node"
+    done < "$usb_work/mounts"
+  done < "$usb_work/children"
   if lsblk -nrpo MOUNTPOINT "$usb_disk" | grep -q '[^[:space:]]'
   then
-    usb_fail 'selected disk has a mounted filesystem; no data written'
-  fi
-  if lsblk -nrpo FSTYPE "$usb_disk" | grep -q '^swap$'
-  then
-    usb_fail 'selected disk contains swap; no data written'
+    usb_fail 'some selected-disk filesystems remain mounted'
   fi
 }
 usb_write()
