@@ -1,0 +1,41 @@
+name: Validate published GPT QEMU test preparation
+on:
+  push:
+    paths:
+      - tests/qemu-published-test.sh
+      - tests/qemu-run.sh
+      - .github/workflows/validate-qemu-published.yml
+      - images/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-published-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check POSIX script syntax and command-line contract
+        run: |
+          set -eu
+          sh -n tests/qemu-published-test.sh tests/qemu-run.sh
+          ./tests/qemu-published-test.sh --help
+          if ./tests/qemu-published-test.sh --verify-only --target unsupported
+          then
+            echo 'ERROR: unsupported QEMU target accepted' >&2
+            exit 1
+          fi
+      - name: Verify exact published disk by sparse decompression and SHA256
+        run: |
+          set -eu
+          test -x tests/qemu-published-test.sh
+          test -x tests/qemu-run.sh
+          test -f images/m-boot-combined.raw.gz
+          test -f images/RAW-SHA256SUMS
+          ./tests/qemu-published-test.sh --verify-only --output "$RUNNER_TEMP"
+          if find "$RUNNER_TEMP" -maxdepth 1 -name '.m-boot-qemu-published.*' -print | grep .
+          then
+            echo 'ERROR: QEMU test left behind a temporary image' >&2
+            exit 1
+          fi
+          echo 'Published raw image and temporary workspace PASS. Firmware UI requires an interactive graphical run.'
