@@ -76,7 +76,7 @@ usb_refresh()
   usb_partition="$usb_disk"s3
   usb_plist "$usb_partition" || usb_fail 'macOS has not recognized partition 3; reconnect before formatting'
   observed=$(usb_plist_value "$usb_work/info.plist" TotalSize)
-  expected=$(( (usb_bytes / 512 - 34 - 1071104) * 512 ))
+  expected=$(( (usb_bytes / 512 - 33 - 1071104) * 512 ))
   [ "$observed" = "$expected" ] ||
     usb_fail 'macOS kernel still has stale partition geometry; reconnect before formatting'
 }
