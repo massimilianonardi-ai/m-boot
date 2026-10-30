@@ -93,6 +93,13 @@ then
   [ "$data_type" = exfat ] || fail "data must be mounted exFAT; found $data_type" 28
 fi
 
+# A legacy installation may still contain the loader on exFAT. Never
+# silently leave two executable loader copies or delete existing user data.
+if [ -e "$data/m/boot/loader" ] || [ -L "$data/m/boot/loader" ]
+then
+  fail 'legacy loader detected on exFAT; migrate explicitly before installing an ESP loader' 39
+fi
+
 # Never follow an installed-directory symlink or replace an existing boot entry.
 for item in "$esp/EFI" "$esp/EFI/BOOT" "$esp/m" "$esp/m/boot" "$esp/m/boot/loader"
 do
