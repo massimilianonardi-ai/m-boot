@@ -48,7 +48,7 @@ jobs:
           test -s "$RUNNER_TEMP/m-boot-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
           for target in i386-pc x86_64-efi arm64-efi
           do
-            loader="$RUNNER_TEMP/m-boot-stages/$target/data/m/boot/loader"
+            loader="$RUNNER_TEMP/m-boot-stages/$target/esp/m/boot/loader"
             test -s "$loader/theme/default/theme.cfg"
             test -s "$loader/theme/default/images/background.jpg"
             test -s "$loader/menu/gui"
@@ -60,9 +60,9 @@ jobs:
               test -s "$loader/$module_target/exfat.mod"
             done
           done
-          first="$RUNNER_TEMP/m-boot-stages/i386-pc/data/m/boot/loader"
-          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/x86_64-efi/data/m/boot/loader"
-          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/arm64-efi/data/m/boot/loader"
+          first="$RUNNER_TEMP/m-boot-stages/i386-pc/esp/m/boot/loader"
+          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/x86_64-efi/esp/m/boot/loader"
+          diff -rq "$first" "$RUNNER_TEMP/m-boot-stages/arm64-efi/esp/m/boot/loader"
           if grep -E '^(gfxterm|gfxmenu|efi_gop|vbe|png|jpeg|tga)$' grub-modules-bios.cfg grub-modules-efi.cfg
           then
             echo 'ERROR: GUI module embedded in bootstrap list' >&2
@@ -149,5 +149,5 @@ jobs:
           test -s "$RUNNER_TEMP/portable-stages/i386-pc/bios/core.img"
           test -s "$RUNNER_TEMP/portable-stages/x86_64-efi/esp/EFI/BOOT/BOOTX64.EFI"
           test -s "$RUNNER_TEMP/portable-stages/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI"
-          diff -rq "$RUNNER_TEMP/portable-stages/i386-pc/data/m/boot/loader" \
-                   "$RUNNER_TEMP/portable-stages/arm64-efi/data/m/boot/loader"
+          diff -rq "$RUNNER_TEMP/portable-stages/i386-pc/esp/m/boot/loader" \
+                   "$RUNNER_TEMP/portable-stages/arm64-efi/esp/m/boot/loader"
