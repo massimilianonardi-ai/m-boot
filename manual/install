@@ -14,7 +14,10 @@ DESCRIPTION
     its recursive contents on the ESP match the staged loader exactly; if different,
     installation fails without merging or replacing existing files.
     The exFAT mount is validated but contains no m-loader; it is reserved
-    for ordinary ISO, recovery and backup payloads. The default mode is a no-write plan. --apply is required to copy files.
+    for external tools, bootable ISO images, virtual machines and other
+    large payloads such as backups. Built-in loader files (including
+    theme, configuration and GRUB modules) are installed on the ESP only.
+    The default mode is a no-write plan. --apply is required to copy files.
     If a file copy fails after writing begins, partial files may remain;
     the error explicitly reports that possibility.
 
