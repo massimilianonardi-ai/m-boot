@@ -8,8 +8,8 @@ usage()
 Usage: build.sh --target x86_64-efi|arm64-efi|i386-pc --output DIR [--modules-dir DIR] [--grub-mkimage FILE]
 
 Build one GRUB target into DIR/TARGET without changing an existing stage.
-UEFI stages contain esp/EFI/BOOT/BOOT*.EFI and data/m/boot/loader/.
-BIOS stages contain bios/core.img and data/m/boot/loader/; BIOS installation
+UEFI stages contain esp/EFI/BOOT/BOOT*.EFI and esp/m/boot/loader/.
+BIOS stages contain bios/core.img and esp/m/boot/loader/; BIOS installation
 requires a separate, explicitly authorized disk-boot procedure.
 Embedded modules: grub-modules-bios.cfg or grub-modules-efi.cfg.
 Runtime modules: /m/boot/loader/{i386-pc,x86_64-efi,arm64-efi}/.
@@ -181,12 +181,13 @@ output=$(CDPATH= cd -- "$output" && pwd -P) || fail 'cannot resolve output direc
 [ ! -e "$output/$target" ] && [ ! -L "$output/$target" ] || fail "stage already exists (will not overwrite): $output/$target" 15
 
 stage=$(mktemp -d "$output/.m-boot-build.XXXXXXXX") || fail 'cannot create temporary staging directory' 16
-mkdir -p "$stage/data/m/boot/loader" || fail 'cannot create data staging tree' 17
-cp -R -- "$root/loader/." "$stage/data/m/boot/loader/" || fail 'cannot stage external loader' 18
+mkdir -p "$stage/esp/m/boot/loader" || fail 'cannot create ESP loader staging tree' 17
+cp -R -- "$root/loader/." "$stage/esp/m/boot/loader/" || fail 'cannot stage external loader' 18
 
 # insmod reads "$prefix/<target>/<module>.mod". Publish ALL three complete
-# architecture directories in every stage: the ESPs share one common loader.
-loader_modules="$stage/data/m/boot/loader"
+# architecture directories in every stage: both EFI executables and BIOS
+# find one common loader on the FAT32 ESP.
+loader_modules="$stage/esp/m/boot/loader"
 for module_target in i386-pc x86_64-efi arm64-efi
 do
   [ ! -e "$loader_modules/$module_target" ] && [ ! -L "$loader_modules/$module_target" ] || fail "loader source already has module tree: $module_target" 40
