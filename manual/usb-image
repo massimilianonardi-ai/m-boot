@@ -15,8 +15,8 @@ DESCRIPTION
     AFTER CONFIRMATION it writes the verified image to the selected whole
     disk using dd, moves the backup GPT to the device end, keeps the BIOS
     and EFI partition geometry fixed, recreates partition 3 to occupy all
-    remaining usable sectors, formats partition 3 as exFAT and restores
-    the entire loader. All old data on the selected disk is destroyed.
+    remaining usable sectors, formats partition 3 as empty exFAT; the complete loader stays on
+    the unchanged ESP. All old data on the selected disk is destroyed.
     This is a one-time disk provisioning operation, NOT an update method
     for a data-bearing m-boot disk or an ISO installation command.
 
@@ -62,13 +62,15 @@ PLATFORMS AND REQUIREMENTS
 BOOT MEDIA GEOMETRY (512-BYTE LOGICAL SECTORS)
     Partition 1: EF02, LBAs 2048..22527 (10 MiB BIOS Boot, no filesystem)
     Partition 2: EF00, LBAs 22528..1071103 (512 MiB FAT32 ESP)
-    Partition 3: 0700, starts at LBA 1071104 (exFAT common loader/data)
+    Partition 3: 0700, starts at LBA 1071104 (exFAT payload/data only)
 
     The installed firmware executables are EFI/BOOT/BOOTX64.EFI and
     EFI/BOOT/BOOTAA64.EFI on the same ESP, with complete GRUB runtime
-    modules for all three targets under /m/boot/loader on exFAT.
-    The third partition's original exFAT content is discarded by design:
-    images/m-boot-loader.zip is restored after reformatting. Fresh GPT
+    modules for all three targets under /m/boot/loader on the FAT32 ESP.
+    The third partition remains empty for user ISO, backup and other data.
+    images/m-boot-loader.zip is an independent backup of the ESP loader,
+    NOT content restored onto exFAT. The installer rejects legacy
+    published images lacking BUILD-INFO.txt loader_location=esp. Fresh GPT
     disk and partition GUIDs are generated to avoid duplicate media IDs.
 
 USE
@@ -79,13 +81,13 @@ USE
     The installer verifies both compressed-distribution and decompressed
     raw-disk SHA256 by streaming gzip into a checksum calculation; it
     DOES NOT materialize a 2 GiB raw image in /tmp (or require 2 GiB of
-    host disk quota). Only small control files and the ~12 MiB loader ZIP
-    are staged temporarily. It lists numbered disks, shows full selected-
+    host disk quota). Only small control files are staged temporarily. It lists numbered disks, shows full selected-
     device details, and waits for typed authorization. Following consent,
     gzip is streamed directly into dd. Before altering GPT/partition 3,
     the first 2 GiB are read back from the device and verified against
-    RAW-SHA256SUMS. Any stream, dd or readback failure aborts without
-    formatting. No manual dd, GPT edit or filesystem expansion commands
+    RAW-SHA256SUMS. The original ESP loader remains present throughout
+    third-partition expansion and exFAT formatting. Any stream, dd or
+    readback failure aborts without formatting. No manual dd, GPT edit or filesystem expansion commands
     are necessary after selection.
 
 VALIDATION LIMITS
