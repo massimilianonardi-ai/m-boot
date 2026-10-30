@@ -5,7 +5,7 @@ on:
       - .github/workflows/build-usb-image.yml
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   publish:
     runs-on: ubuntu-24.04
@@ -18,7 +18,7 @@ jobs:
           test "$(uname -m)" = x86_64
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            gdisk qemu-utils dosfstools exfatprogs zstd
+            gdisk qemu-utils dosfstools exfatprogs zstd zip unzip
           ./tools/grub-mkimage --version
           ./tools/grub-bios-setup --version
           mk_version=$(./tools/grub-mkimage --version | awk '/\(GRUB\)/ { print $NF }')
@@ -68,6 +68,26 @@ jobs:
             printf 'flash_is_destructive=yes\n'
             printf 'exfat_inplace_grow_supported=no\n'
           } > "$pub/BUILD-INFO.txt"
+      - name: Stage verified cross-platform Git-tracked distribution
+        run: |
+          set -eu
+          sh -n usb-install.sh tools/usb-target-linux.sh tools/usb-target-macos.sh tools/usb-gpt.sh
+          ./usb-install.sh --help
+          pub="$RUNNER_TEMP/m-boot-publish"
+          raw="$RUNNER_TEMP/m-boot-usb-build/m-boot-combined.raw"
+          stage="$RUNNER_TEMP/m-boot-usb-build/stages/i386-pc"
+          mkdir -p "$pub/repo"
+          sudo gzip -1 -c "$raw" > "$pub/repo/m-boot-combined.raw.gz"
+          sudo sh -c 'cd "$1" && zip -qry "$2" m/boot/loader' sh \
+            "$stage/data" "$pub/repo/m-boot-loader.zip"
+          unzip -tqq "$pub/repo/m-boot-loader.zip"
+          unzip -Z -1 "$pub/repo/m-boot-loader.zip" | grep -Fx 'm/boot/loader/init'
+          cp "$pub/m-boot-combined.raw.sha256" "$pub/repo/RAW-SHA256SUMS"
+          cp "$pub/BUILD-INFO.txt" "$pub/repo/BUILD-INFO.txt"
+          (cd "$pub/repo" && sha256sum m-boot-combined.raw.gz m-boot-loader.zip > SHA256SUMS)
+          (cd "$pub/repo" && sha256sum -c SHA256SUMS)
+          gzip -dc "$pub/repo/m-boot-combined.raw.gz" |
+            sha256sum | cmp - "$pub/m-boot-combined.raw.sha256"
       - name: Simulate larger USB, preserve boot partitions, recreate exFAT and restore loader
         run: |
           set -eu
@@ -96,7 +116,7 @@ jobs:
           test -b "$loop"p3
           sudo mkfs.exfat -n MBOOTDATA "$loop"p3
           sudo mount -t exfat "$loop"p3 "$mnt"
-          zstd -dc "$pub/m-boot-loader.tar.zst" | sudo tar --no-same-owner --no-same-permissions -C "$mnt" -xf -
+          sudo unzip -oq "$pub/repo/m-boot-loader.zip" -d "$mnt"
           sudo test -s "$mnt/m/boot/loader/init"
           sudo test -s "$mnt/m/boot/loader/i386-pc/normal.mod"
           sudo test -s "$mnt/m/boot/loader/x86_64-efi/normal.mod"
@@ -116,3 +136,21 @@ jobs:
           retention-days: 30
           if-no-files-found: error
           compression-level: 0
+      - name: Commit the public image and loader into the repository
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          pub="$RUNNER_TEMP/m-boot-publish/repo"
+          git fetch origin main
+          git switch -c publish-combined-image origin/main
+          mkdir -p images
+          cp "$pub/"* images/
+          git add -f -- images/
+          if git diff --cached --quiet; then
+            echo 'Image distribution already matches repository; nothing to publish'
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "Publish m-boot combined GPT image from $GITHUB_SHA"
+          git push origin HEAD:main
