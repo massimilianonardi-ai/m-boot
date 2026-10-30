@@ -46,7 +46,9 @@ TARGETS
     arm64-efi:  DIR/arm64-efi/esp/EFI/BOOT/BOOTAA64.EFI
     i386-pc:   DIR/i386-pc/bios/core.img (not directly bootable by copying)
     Every target includes esp/m/boot/loader/ and stage-info. The exFAT
-    data partition is reserved for ISO images and user payloads.
+    data partition is reserved for external tools, ISO images, virtual
+    machines and other large payloads. The ESP owns the built-in loader,
+    its scripts, menus, themes, configuration and all GRUB runtime modules.
 
 OPTIONS
     --target        Required GRUB image format.
