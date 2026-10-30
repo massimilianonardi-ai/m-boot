@@ -45,7 +45,7 @@ do
   usb_need "$cmd"
 done
 usb_require
-for file in m-boot-combined.raw.gz m-boot-loader.zip SHA256SUMS RAW-SHA256SUMS
+for file in m-boot-combined.raw.gz m-boot-loader.zip SHA256SUMS RAW-SHA256SUMS BUILD-INFO.txt
 do
   [ -f "$dist/$file" ] || usb_fail "published file missing: images/$file (git pull first)"
 done
@@ -112,14 +112,14 @@ usb_verify_disk()
 }
 
 # Verify compressed distribution and raw image BEFORE selection.
-# Only small metadata and the loader ZIP use temporary disk space.
-usb_info 'verifying published image and loader checksums'
+# Only small metadata uses temporary disk space.
+usb_info 'verifying published image and ESP loader backup checksums'
 (cd "$dist" && usb_checksum -c SHA256SUMS) ||
   usb_fail 'published artifact checksum mismatch'
 unzip -tqq "$dist/m-boot-loader.zip" ||
   usb_fail 'published loader ZIP is corrupt'
-cp "$dist/m-boot-loader.zip" "$usb_work/loader.zip" ||
-  usb_fail 'cannot stage loader archive'
+grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null ||
+  usb_fail 'published image has an older exFAT-loader layout; wait for the new ESP-loader image'
 gzip -t "$dist/m-boot-combined.raw.gz" ||
   usb_fail 'compressed image has a CRC/decompression error'
 expected_hash=$(awk '$2 == "m-boot-combined.raw" { print $1 }' "$dist/RAW-SHA256SUMS")
@@ -176,27 +176,8 @@ usb_verify_disk
 usb_info 'relocating GPT and extending partition 3'
 usb_expand_gpt
 usb_refresh
-usb_info 'formatting expanded exFAT and restoring loader'
+usb_info 'formatting payload-only exFAT (m-loader is already on the ESP)'
 usb_format_mount
-if [ "$os" = Linux ]
-then
-  unzip -oq "$usb_work/loader.zip" -d "$usb_mountpoint" ||
-    usb_fail 'loader ZIP extraction failed'
-else
-  sudo unzip -oq "$usb_work/loader.zip" -d "$usb_mountpoint" ||
-    usb_fail 'loader ZIP extraction failed'
-fi
-for path in init i386-pc/normal.mod x86_64-efi/normal.mod arm64-efi/normal.mod
-do
-  if [ "$os" = Linux ]
-  then
-    [ -s "$usb_mountpoint/m/boot/loader/$path" ] ||
-      usb_fail "loader file missing: $path"
-  else
-    sudo test -s "$usb_mountpoint/m/boot/loader/$path" ||
-      usb_fail "loader file missing: $path"
-  fi
-done
 sync
 usb_unmount
 usb_check_fs
