@@ -76,7 +76,7 @@ usb_identity()
 }
 usb_prepare()
 {
-  usb_eligible "$usb_disk" || usb_fail 'disk is not external and physical'
+  usb_eligible "$usb_disk" || usb_fail 'selected device is no longer a physical disk'
   [ "$(usb_size "$usb_disk")" = "$usb_bytes" ] || usb_fail 'disk size changed'
   [ "$(usb_identity "$usb_disk")" = "$usb_id" ] || usb_fail 'disk identity changed'
   sudo diskutil unmountDisk "$usb_disk" || usb_fail 'cannot unmount selected disk'
