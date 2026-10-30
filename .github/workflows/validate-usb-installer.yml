@@ -23,6 +23,34 @@ jobs:
           (cd images && sha256sum -c SHA256SUMS)
           gzip -t images/m-boot-combined.raw.gz
           unzip -tqq images/m-boot-loader.zip
+      - name: Exercise real interactive preflight with 16 MiB file quota
+        run: |
+          set -eu
+          # A 2 GiB raw staging file must fail this quota, but normal
+          # streamed image checksum and small ZIP staging must succeed.
+          transcript="$RUNNER_TEMP/usb-installer-preflight.log"
+          set +e
+          printf 'q\n' | (
+            ulimit -f 32768
+            script -q -e -c './usb-install.sh' "$transcript"
+          )
+          outcome=$?
+          set -e
+          grep -F 'verifying published image and loader checksums' "$transcript"
+          if grep -F 'Available physical disks' "$transcript"
+          then
+            # The caller typed q: the script should exit without consent/writes.
+            test "$outcome" -eq 0
+          else
+            # A runner with no physical disk can fail after a good preflight.
+            grep -F 'no physical disks detected' "$transcript"
+            test "$outcome" -eq 1
+          fi
+          if grep -E 'cannot decompress|Disk quota exceeded|decompressed image SHA256 mismatch' "$transcript"
+          then
+            echo 'Unexpected streaming preflight failure' >&2
+            exit 1
+          fi
   macos:
     runs-on: macos-15
     steps:
