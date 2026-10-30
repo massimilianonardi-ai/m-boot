@@ -18,7 +18,7 @@ usb_need()
 usb_usage()
 {
   printf 'Usage: ./usb-install.sh\n'
-  printf 'Select an EXTERNAL physical disk, inspect it, confirm full erase.\n'
+  printf 'Select a physical disk, inspect it, confirm full erase.\n'
   printf 'The installer writes BIOS+dual UEFI and fills remaining space with exFAT.\n'
 }
 case "$#" in
@@ -101,7 +101,7 @@ gzip -dc "$dist/m-boot-combined.raw.gz" > "$usb_work/m-boot-combined.raw" ||
 usb_list > "$usb_work/disks"
 count=$(wc -l < "$usb_work/disks" | tr -d '[:space:]')
 [ "$count" -gt 0 ] || usb_fail 'no external physical disks detected'
-printf '\nAvailable physical disks (mounted/system disks cannot be overwritten):\n'
+printf '\nAvailable physical disks (system disks in active use are refused):\n'
 number=0
 while IFS= read -r candidate
 do
