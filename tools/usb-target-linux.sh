@@ -77,7 +77,13 @@ usb_prepare()
 }
 usb_write()
 {
-  sudo dd if="$usb_work/m-boot-combined.raw" of="$usb_disk" bs=4M conv=fsync status=progress
+  # stdin is the verified gzip decompression stream.
+  sudo dd of="$usb_disk" bs=4M conv=fsync status=progress
+}
+usb_readback()
+{
+  # Read exactly the unchanged 2 GiB image region, before GPT edits.
+  sudo dd if="$usb_disk" bs=4M count=512 status=none
 }
 usb_refresh()
 {
