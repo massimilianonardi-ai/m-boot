@@ -1,9 +1,11 @@
-# User-facing external media index. The ESP owns this script; exFAT owns payloads.
+# User-facing external media index. The ESP owns this script; ext4 owns new payloads.
 set default=0
 set timeout=-1
 
 # GRUB loads filesystem support from the already selected ESP loader prefix.
 insmod part_gpt
+insmod ext2
+# Preserve GRUB read access to existing exFAT payloads during migration.
 insmod exfat
 
 # Prefer the data volume label, but also allow a different label when the
@@ -32,12 +34,12 @@ if [ -z "$boot_media_device" ]
 then
   menuentry "No external boot media found" {
     echo "No /m/boot/iso directory is accessible on external filesystems."
-    echo "Check the exFAT MBOOTDATA partition and GRUB filesystem support."
+    echo "Check the MBOOTDATA partition and GRUB filesystem support."
     sleep --interruptible 30
   }
 else
   # Make the ISO paths Linux-initramfs friendly: absolute paths *within*
-  # the exFAT filesystem, not GRUB "(hdX,gptY)/..." device-qualified paths.
+  # the selected filesystem, not GRUB "(hdX,gptY)/..." device-qualified paths.
   set root="$boot_media_device"
   set isopath="/m/boot/iso"
   set efipath="/m/boot/efi"

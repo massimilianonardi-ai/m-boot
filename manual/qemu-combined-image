@@ -12,11 +12,11 @@ DESCRIPTION
     never overwritten. The image uses GPT and contains:
        1   EF02   10 MiB        BIOS Boot Partition, no filesystem
        2   EF00   512 MiB       EFI System Partition, FAT32
-       3   0700   remainder     exFAT payload/data only
+       3   8300   remainder     ext4 payload/data only
 
     The ESP has both EFI/BOOT/BOOTX64.EFI and EFI/BOOT/BOOTAA64.EFI,
     plus ONE /m/boot/loader/ tree and three complete runtime module trees.
-    exFAT starts empty for external tools, bootable ISO images, virtual
+    ext4 starts empty for external tools, bootable ISO images, virtual
     machines and other large payloads such as backups. Built-in menus,
     themes, configuration and GRUB runtime modules remain on the ESP.
     The installer is
@@ -43,7 +43,7 @@ REQUIREMENTS
     three build stages (which may have been prepared on different build
     hosts), host-side grub-bios-setup and i386-pc boot.img (inside the
     prebuilt/m-boot-i386-pc.tar.xz module directory), qemu-img, sgdisk,
-    losetup, mkfs.vfat, mkfs.exfat, mount and umount.
+    losetup, mkfs.vfat, mkfs.ext4, mount and umount.
     Select a separate output directory. No physical disk pathname is
     accepted, and the resulting raw file is not a physical install.
 

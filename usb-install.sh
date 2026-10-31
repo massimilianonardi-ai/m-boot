@@ -19,7 +19,7 @@ usb_usage()
 {
   printf 'Usage: ./usb-install.sh\n'
   printf 'Select a physical disk, inspect it, confirm full erase.\n'
-  printf 'The installer writes BIOS+dual UEFI and fills remaining space with exFAT.\n'
+  printf 'The installer writes BIOS+dual UEFI and fills remaining space with ext4.\n'
 }
 case "$#" in
   0) ;;
@@ -119,7 +119,9 @@ usb_info 'verifying published image and ESP loader backup checksums'
 unzip -tqq "$dist/m-boot-loader.zip" ||
   usb_fail 'published loader ZIP is corrupt'
 grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null ||
-  usb_fail 'published image has an older exFAT-loader layout; wait for the new ESP-loader image'
+  usb_fail 'published image does not have the ESP loader'
+grep -Fx 'data_filesystem=ext4' "$dist/BUILD-INFO.txt" >/dev/null ||
+  usb_fail 'published image has not yet been rebuilt for ext4; refuse destructive install'
 gzip -t "$dist/m-boot-combined.raw.gz" ||
   usb_fail 'compressed image has a CRC/decompression error'
 expected_hash=$(awk '$2 == "m-boot-combined.raw" { print $1 }' "$dist/RAW-SHA256SUMS")
@@ -159,7 +161,8 @@ usb_id=$(usb_identity "$usb_disk")
 [ "$usb_bytes" -ge 2147483648 ] || usb_fail 'disk smaller than image'
 
 printf '\nALL DATA AND PARTITIONS ON %s WILL BE DESTROYED.\n' "$usb_disk"
-printf 'The disk will be flashed and partition 3 recreated as full-size exFAT.\n'
+printf 'The disk will be flashed and partition 3 recreated as full-size ext4.\n'
+printf 'macOS cannot mount or write ext4 natively; copy ISO payloads from Linux.\n'
 printf 'Type exactly "ERASE %s" to confirm: ' "$usb_disk"
 IFS= read -r answer || usb_fail 'no confirmation'
 [ "$answer" = "ERASE $usb_disk" ] ||
@@ -176,9 +179,9 @@ usb_verify_disk
 usb_info 'relocating GPT and extending partition 3'
 usb_expand_gpt
 usb_refresh
-usb_info 'formatting payload-only exFAT (m-loader is already on the ESP)'
+usb_info 'formatting payload-only ext4 (m-loader is already on the ESP)'
 usb_format_mount
 sync
 usb_unmount
 usb_check_fs
-usb_info "SUCCESS: $usb_disk contains BIOS, x86_64/ARM64 UEFI and expanded exFAT"
+usb_info "SUCCESS: $usb_disk contains BIOS, x86_64/ARM64 UEFI and expanded ext4"

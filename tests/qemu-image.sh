@@ -62,7 +62,7 @@ else
 fi
 [ "$scenario" = recovery ] || [ -f "$stage/esp/m/boot/loader/init" ] || fail 'ESP loader init missing from stage' 13
 [ "$(id -u)" -eq 0 ] || fail 'must run as root (loopback, mkfs, mount); no physical device is used' 14
-for tool in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt
+for tool in qemu-img sgdisk losetup mkfs.vfat mkfs.ext4 mount umount findmnt
 do
   command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool" 15
 done
@@ -103,12 +103,12 @@ if [ "$target" = i386-pc ]
 then
   sgdisk --clear --new=1:2048:+10M --typecode=1:EF02 \
     --new=2:0:+256M --typecode=2:EF00 \
-    --new=3:0:0 --typecode=3:0700 "$raw" || fail 'cannot create BIOS GPT partitions' 24
+    --new=3:0:0 --typecode=3:8300 "$raw" || fail 'cannot create BIOS GPT partitions' 24
   esp_part=2
   data_part=3
 else
   sgdisk --clear --new=1:2048:+256M --typecode=1:EF00 \
-    --new=2:0:0 --typecode=2:0700 "$raw" || fail 'cannot create UEFI GPT partitions' 25
+    --new=2:0:0 --typecode=2:8300 "$raw" || fail 'cannot create UEFI GPT partitions' 25
   esp_part=1
   data_part=2
 fi
@@ -126,10 +126,10 @@ do
 done
 [ -b "$esp_dev" ] && [ -b "$data_dev" ] || fail 'kernel did not expose loop partitions' 30
 mkfs.vfat -F 32 -n MBOOTESP "$esp_dev" || fail 'cannot format temporary EFI partition' 31
-mkfs.exfat -n MBOOTDATA "$data_dev" || fail 'cannot format temporary exFAT partition' 32
+mkfs.ext4 -F -L MBOOTDATA "$data_dev" || fail 'cannot format temporary ext4 partition' 32
 mount -t vfat "$esp_dev" "$work/esp" || fail 'cannot mount temporary ESP' 33
 esp_mounted=yes
-mount -t exfat "$data_dev" "$work/data" || fail 'cannot mount temporary exFAT filesystem' 34
+mount -t ext4 "$data_dev" "$work/data" || fail 'cannot mount temporary ext4 filesystem' 34
 data_mounted=yes
 
 if [ "$target" = i386-pc ]

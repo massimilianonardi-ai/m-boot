@@ -57,7 +57,7 @@ jobs:
               test -s "$loader/$module_target/normal.mod"
               test -s "$loader/$module_target/gfxterm.mod"
               test -s "$loader/$module_target/gfxmenu.mod"
-              test -s "$loader/$module_target/exfat.mod"
+              test -s "$loader/$module_target/ext2.mod"
             done
           done
           first="$RUNNER_TEMP/m-boot-stages/i386-pc/esp/m/boot/loader"
@@ -91,7 +91,7 @@ jobs:
       - name: Prepare disposable combined GPT image
         run: |
           set -eu
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-utils gdisk dosfstools exfatprogs
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-utils gdisk dosfstools e2fsprogs
           sudo ./tests/qemu-combined-test.sh --stages "$RUNNER_TEMP/m-boot-stages" --output "$RUNNER_TEMP/m-boot-disk" --prepare-only
           test -s "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"
           sgdisk --verify "$RUNNER_TEMP/m-boot-disk/m-boot-combined.raw"

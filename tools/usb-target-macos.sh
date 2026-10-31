@@ -4,7 +4,7 @@ usb_require()
 {
   PATH="/opt/homebrew/sbin:/usr/local/sbin:$PATH"
   export PATH
-  for cmd in diskutil plutil newfs_exfat fsck_exfat
+  for cmd in diskutil plutil
   do
     command -v "$cmd" >/dev/null 2>&1 || usb_fail "missing macOS tool: $cmd"
   done
@@ -23,6 +23,19 @@ usb_require()
     fi
   fi
   command -v sgdisk >/dev/null 2>&1 || usb_fail 'sgdisk remains unavailable'
+  # ext4 is not mountable on macOS. Homebrew e2fsprogs formats/checks
+  # the raw volume without attempting to mount its payload filesystem.
+  command -v brew >/dev/null 2>&1 ||
+    usb_fail 'Homebrew is required for ext4 provisioning on macOS'
+  if [ -z "$(brew list --versions e2fsprogs 2>/dev/null)" ]
+  then
+    usb_info 'installing e2fsprogs before disk write'
+    brew install e2fsprogs || usb_fail 'e2fsprogs installation failed before disk write'
+  fi
+  usb_e2fs_sbin="$(brew --prefix e2fsprogs)/sbin"
+  [ -x "$usb_e2fs_sbin/mkfs.ext4" ] &&
+    [ -x "$usb_e2fs_sbin/e2fsck" ] ||
+    usb_fail 'Homebrew e2fsprogs tools unavailable'
 }
 usb_plist_value()
 {
@@ -108,21 +121,17 @@ usb_refresh()
 usb_format_mount()
 {
   rawpart=$(printf '%s\n' "$usb_partition" | sed 's@^/dev/disk@/dev/rdisk@')
-  sudo newfs_exfat -R -v MBOOTDATA "$rawpart" || usb_fail 'exFAT formatting failed'
-  sudo diskutil mount "$usb_partition" || usb_fail 'cannot mount new exFAT filesystem'
-  usb_mounted="$usb_partition"
-  usb_plist "$usb_partition" || usb_fail 'cannot inspect mounted partition'
-  usb_mountpoint=$(usb_plist_value "$usb_work/info.plist" MountPoint)
-  [ -n "$usb_mountpoint" ] && [ -d "$usb_mountpoint" ] ||
-    usb_fail 'no valid mounted exFAT path'
+  sudo "$usb_e2fs_sbin/mkfs.ext4" -F -L MBOOTDATA "$rawpart" ||
+    usb_fail 'ext4 formatting failed'
+  # No native ext4 mount on macOS; payload remains empty.
+  usb_mounted=
 }
 usb_unmount()
 {
-  sudo diskutil unmount "$usb_mounted" || usb_fail 'cannot unmount restored exFAT'
-  usb_mounted=
+  [ -z "$usb_mounted" ] || usb_fail 'unexpected mounted ext4 partition'
 }
 usb_check_fs()
 {
   rawpart=$(printf '%s\n' "$usb_partition" | sed 's@^/dev/disk@/dev/rdisk@')
-  sudo fsck_exfat -n "$rawpart" || usb_fail 'exFAT integrity check failed'
+  sudo "$usb_e2fs_sbin/e2fsck" -fn "$rawpart" || usb_fail 'ext4 integrity check failed'
 }

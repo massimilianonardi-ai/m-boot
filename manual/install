@@ -7,13 +7,13 @@ SYNOPSIS
 
 DESCRIPTION
     This standalone Linux installer accepts two existing, separate mountpoints
-    (vfat ESP with the full loader and exFAT payload partition) and a build.sh stage for x86_64-efi
+    (vfat ESP with the full loader and ext4 payload partition) and a build.sh stage for x86_64-efi
     or arm64-efi. It never formats, partitions, calls dd or grub-install, or
     writes to raw block devices. Existing EFI fallback files are never
     overwritten. An existing m/boot/loader directory is reused only when
     its recursive contents on the ESP match the staged loader exactly; if different,
     installation fails without merging or replacing existing files.
-    The exFAT mount is validated but contains no m-loader; it is reserved
+    The ext4 mount is validated but contains no m-loader; it is reserved
     for external tools, bootable ISO images, virtual machines and other
     large payloads such as backups. Built-in loader files (including
     theme, configuration and GRUB modules) are installed on the ESP only.
@@ -24,7 +24,7 @@ DESCRIPTION
 OPTIONS
     --stage            Required build.sh output directory for one target.
     --esp              Required already-mounted FAT32 ESP root directory.
-    --data             Required already-mounted exFAT data root directory.
+    --data             Required already-mounted ext4 data root directory.
     --apply            Explicitly copy missing files (default: dry run).
                        An identical already-installed loader is not recopied.
     --allow-directory  Bypass mount/fs checks for disposable test directories

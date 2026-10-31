@@ -25,7 +25,7 @@ usb_verify_layout()
     [ "$(usb_gpt_field 2 type)" = C12A7328-F81F-11D2-BA4B-00A0C93EC93B ] ||
     usb_fail 'unexpected EFI partition layout/type'
   [ "$(usb_gpt_field 3 first)" = 1071104 ] &&
-    [ "$(usb_gpt_field 3 type)" = EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 ] ||
+    [ "$(usb_gpt_field 3 type)" = 0FC63DAF-8483-4772-8E79-3D69D8477DE4 ] ||
     usb_fail 'unexpected third partition layout/type'
 }
 usb_expand_gpt()
@@ -33,7 +33,7 @@ usb_expand_gpt()
   sudo sgdisk -e "$usb_disk" || usb_fail 'cannot relocate GPT backup'
   sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after relocating backup'
   usb_verify_layout
-  sudo sgdisk -d 3 -n 3:1071104:0 -t 3:0700 "$usb_disk" ||
+  sudo sgdisk -d 3 -n 3:1071104:0 -t 3:8300 "$usb_disk" ||
     usb_fail 'cannot expand third partition'
   sudo sgdisk -G "$usb_disk" || usb_fail 'cannot randomize cloned GPT identifiers'
   sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after expansion'

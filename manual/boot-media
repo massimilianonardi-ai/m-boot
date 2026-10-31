@@ -5,13 +5,17 @@ PURPOSE
     menu, with Recovery and backup, Live systems and installers, Hardware
     diagnostics, and Network boot categories. It discovers the data
     partition by the MBOOTDATA label or /m/boot/iso, and presents files
-    without changing exFAT or requiring a rebuild for payload copies.
+    without changing ext4 or requiring a rebuild for payload copies.
 
-DATA ROOT (OPERATOR-SELECTED, 2026-10-30)
-    exFAT: /m/boot/iso/ (flat ISO list)
+DATA ROOT (PATHS RETAINED, EXT4 DEFAULT 2026-10-31)
+    ext4: /m/boot/iso/ (flat ISO list)
            /m/boot/efi/memtest/ (unpacked memtest86+ binaries)
            /m/boot/efi/netboot/ (netboot.xyz EFI, PXE and Linux images)
     ESP:   /m/boot/loader/ (all GRUB scripts, menus, modules and themes)
+
+    Current product images provision ext4; the GRUB exFAT reader remains
+    for older USB payloads during migration, without fixing Ubuntu's
+    exFAT early-userspace limitation.
 
 MENU ENTRY SUPPORT LEVELS
     Existing user-maintained scripts are retained. Recipes under
@@ -24,7 +28,7 @@ MENU ENTRY SUPPORT LEVELS
     Other visible payload entries say "boot recipe pending" and only
     identify the file; they do not pretend to boot it. EFI netboot.xyz
     choices on matching UEFI architecture are marked experimental because
-    UEFI/GRUB chainloading from exFAT is not yet validated. BIOS PXE
+    UEFI/GRUB chainloading from ext4 is not yet validated. BIOS PXE
     images and Memtest86+ binaries are not guessed to be EFI executables.
 
 VERIFICATION
@@ -32,7 +36,7 @@ VERIFICATION
     Test actual menu navigation on BIOS x86_64, UEFI x86_64 and UEFI ARM64.
     Validate each selected ISO family through the running target system
     or installer, not just the first GRUB menu. Some kernels/initramfs
-    may lack the needed exFAT/ISO loop access.
+    may lack the needed ext4/ISO loop access.
 
     Editing ESP loader scripts after media provisioning requires updating
     the ESP loader; the original USB need not be destructively reflashed.

@@ -15,7 +15,7 @@ DESCRIPTION
     AFTER CONFIRMATION it writes the verified image to the selected whole
     disk using dd, moves the backup GPT to the device end, keeps the BIOS
     and EFI partition geometry fixed, recreates partition 3 to occupy all
-    remaining usable sectors, formats partition 3 as empty exFAT; the complete loader stays on
+    remaining usable sectors, formats partition 3 as empty ext4; the complete loader stays on
     the unchanged ESP. All old data on the selected disk is destroyed.
     This is a one-time disk provisioning operation, NOT an update method
     for a data-bearing m-boot disk or an ISO installation command.
@@ -48,21 +48,21 @@ PLATFORMS AND REQUIREMENTS
     are unmounted automatically; system mounts, active swap and a checkout
     on the selected disk are refused. macOS unmounts the selected disk
     before writing. The entire selected device is destroyed, not
-    merely its existing exFAT partition. Partitions cannot be silently
+    merely its existing ext4 partition. Partitions cannot be silently
     identified by a guessed /dev/sdX or diskN.
 
     The script requires POSIX sh, gzip, unzip, checksumming tools and
-    administrator authorization. Linux additionally needs lsblk,
-    gdisk/sgdisk, partprobe, udevadm and exfatprogs. macOS needs diskutil,
-    plutil, newfs_exfat, fsck_exfat and sgdisk from gdisk (typically
-    available using Homebrew). All dependencies are checked BEFORE
+    administrator authorization. Linux additionally needs lsblk, gdisk/sgdisk, partprobe,
+    udevadm and e2fsprogs. macOS requires diskutil/plutil, gdisk and
+    keg-only Homebrew e2fsprogs to format/check the raw ext4 partition;
+    it cannot natively mount or write ext4. Use Linux to copy ISOs. All dependencies are checked BEFORE
     any physical disk write. A missing tool or stale kernel partition
     map stops safely with a diagnostic rather than guessing a device.
 
 BOOT MEDIA GEOMETRY (512-BYTE LOGICAL SECTORS)
     Partition 1: EF02, LBAs 2048..22527 (10 MiB BIOS Boot, no filesystem)
     Partition 2: EF00, LBAs 22528..1071103 (512 MiB FAT32 ESP)
-    Partition 3: 0700, starts at LBA 1071104 (exFAT payload/data only)
+    Partition 3: 8300, starts at LBA 1071104 (ext4 payload/data only)
 
     The installed firmware executables are EFI/BOOT/BOOTX64.EFI and
     EFI/BOOT/BOOTAA64.EFI on the same ESP, with complete GRUB runtime
@@ -71,10 +71,10 @@ BOOT MEDIA GEOMETRY (512-BYTE LOGICAL SECTORS)
     bootable ISO images, virtual machines and other large payloads (such as
     backups). Built-in m-loader scripts, menus, themes, configuration and
     all supported GRUB runtime module trees stay on the FAT32 ESP.
-    No loader component is moved to exFAT merely because it is loaded
+    No loader component is moved to ext4 merely because it is loaded
     dynamically rather than embedded in a GRUB EFI executable.
     images/m-boot-loader.zip is an independent backup of the ESP loader,
-    NOT content restored onto exFAT. The installer rejects legacy
+    NOT content restored onto ext4. The installer rejects legacy
     published images lacking BUILD-INFO.txt loader_location=esp. Fresh GPT
     disk and partition GUIDs are generated to avoid duplicate media IDs.
 
@@ -91,14 +91,20 @@ USE
     gzip is streamed directly into dd. Before altering GPT/partition 3,
     the first 2 GiB are read back from the device and verified against
     RAW-SHA256SUMS. The original ESP loader remains present throughout
-    third-partition expansion and exFAT formatting. Any stream, dd or
+    third-partition expansion and ext4 formatting. Any stream, dd or
     readback failure aborts without formatting. No manual dd, GPT edit or filesystem expansion commands
     are necessary after selection.
 
 VALIDATION LIMITS
     GitHub CI validates real GRUB image construction, GPT preparation,
-    publication archive checks and a real loop-backed larger-disk exFAT
+    publication archive checks and a real loop-backed larger-disk ext4
     restoration. A CI test image is not a physical USB/Thunderbolt disk.
+    Changing an existing populated exFAT data volume to ext4 requires
+    backup, a separately authorized reformat of ONLY partition 3 and
+    data restoration. Running usb-install.sh destroys the entire disk;
+    it is NOT a migration operation. GRUB's BIOS/ESP partitions need
+    not be reinstalled just to change the payload filesystem.
+
     Booting actual devices with BIOS x86_64, UEFI x86_64 and UEFI ARM64,
     and running the interactive physical-target installer on both hosts,
     remain separate physical validation obligations. The workflow does

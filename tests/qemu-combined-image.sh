@@ -11,7 +11,7 @@ DIR must contain build.sh stages: i386-pc/, x86_64-efi/, arm64-efi/.
 Creates a new output/m-boot-combined.raw; refuses to overwrite it.
 Uses only a temporary raw file/loop device, never a physical disk operand.
 GPT layout: 10 MiB BIOS Boot (EF02), 512 MiB FAT32 ESP (both UEFI
-architectures), remainder exFAT (payload/data only; shared m-loader resides on ESP).
+architectures), remainder ext4 (payload/data only; shared m-loader resides on ESP).
 Requires Linux root to mount the two image filesystems.
 BIOS modules: --bios-modules-dir > verified tracked archive > host directory.
 HELP
@@ -95,7 +95,7 @@ if [ "$bios_from_archive" = no ]
 then
   [ -n "$bios_modules" ] && [ -f "$bios_modules/boot.img" ] || fail 'BIOS boot.img absent; pass --bios-modules-dir or use tracked archive' 15
 fi
-for program in qemu-img sgdisk losetup mkfs.vfat mkfs.exfat mount umount findmnt
+for program in qemu-img sgdisk losetup mkfs.vfat mkfs.ext4 mount umount findmnt
 do
   command -v "$program" >/dev/null 2>&1 || fail "missing command: $program" 16
 done
@@ -152,7 +152,7 @@ raw="$work/disk.raw"
 qemu-img create -f raw "$raw" 2G || fail 'qemu-img create failed' 24
 sgdisk --clear --new=1:2048:+10M --typecode=1:EF02 \
   --new=2:0:+512M --typecode=2:EF00 \
-  --new=3:0:0 --typecode=3:0700 "$raw" || fail 'GPT partitioning failed' 25
+  --new=3:0:0 --typecode=3:8300 "$raw" || fail 'GPT partitioning failed' 25
 sgdisk --verify "$raw" || fail 'GPT verification failed' 26
 loop=$(losetup --find --show --partscan "$raw") || fail 'loop attach failed' 27
 case "$loop" in /dev/loop[0-9]*) ;; *) fail "unexpected loop: $loop" 28 ;; esac
@@ -167,10 +167,10 @@ do
 done
 [ -b "$esp_dev" ] && [ -b "$data_dev" ] || fail 'loop partitions unavailable' 30
 mkfs.vfat -F 32 -n MBOOTESP "$esp_dev" || fail 'virtual FAT32 formatting failed' 31
-mkfs.exfat -n MBOOTDATA "$data_dev" || fail 'virtual exFAT formatting failed' 32
+mkfs.ext4 -F -L MBOOTDATA "$data_dev" || fail 'virtual ext4 formatting failed' 32
 mount -t vfat "$esp_dev" "$work/esp" || fail 'cannot mount virtual ESP' 33
 esp_mounted=yes
-mount -t exfat "$data_dev" "$work/data" || fail 'cannot mount virtual data' 34
+mount -t ext4 "$data_dev" "$work/data" || fail 'cannot mount virtual data' 34
 data_mounted=yes
 
 # The second installer pass adds BOOTAA64.EFI on the same ESP without replacing its loader.
@@ -182,7 +182,7 @@ data_mounted=yes
 [ -s "$work/esp/m/boot/loader/i386-pc/normal.mod" ] || fail 'BIOS modules absent from ESP loader' 58
 [ -s "$work/esp/m/boot/loader/x86_64-efi/normal.mod" ] || fail 'x86_64 modules absent from ESP loader' 59
 [ -s "$work/esp/m/boot/loader/arm64-efi/normal.mod" ] || fail 'ARM64 modules absent from ESP loader' 60
-[ ! -e "$work/data/m/boot/loader" ] || fail 'loader must not be stored on exFAT' 61
+[ ! -e "$work/data/m/boot/loader" ] || fail 'loader must not be stored on ext4' 61
 sync
 umount "$work/data" || fail 'data unmount failed' 40
 data_mounted=no

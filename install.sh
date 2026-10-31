@@ -11,7 +11,7 @@ Without --apply: show an installation plan, make NO changes.
 --apply: copy only into missing EFI/BOOT/BOOT*.EFI and ESP m/boot/loader paths.
          Existing EFI files are NEVER overwritten. An existing external
          loader directory is reused only when its content is identical.
---allow-directory: allow ordinary directories rather than mounted vfat/exfat
+--allow-directory: allow ordinary directories rather than mounted vfat/ext4
          filesystems (for disposable staging/tests only, not a bootable install).
 
 No partitioning, formatting, raw device writes, or BIOS boot-sector changes.
@@ -90,14 +90,14 @@ then
   esp_type=$(findmnt -n -M "$esp" -o FSTYPE) || fail "ESP is not a mountpoint: $esp" 25
   data_type=$(findmnt -n -M "$data" -o FSTYPE) || fail "data is not a mountpoint: $data" 26
   [ "$esp_type" = vfat ] || fail "ESP must be mounted vfat/FAT32; found $esp_type" 27
-  [ "$data_type" = exfat ] || fail "data must be mounted exFAT; found $data_type" 28
+  [ "$data_type" = ext4 ] || fail "data must be mounted ext4; found $data_type" 28
 fi
 
-# A legacy installation may still contain the loader on exFAT. Never
+# A legacy installation may still contain the loader on the data filesystem. Never
 # silently leave two executable loader copies or delete existing user data.
 if [ -e "$data/m/boot/loader" ] || [ -L "$data/m/boot/loader" ]
 then
-  fail 'legacy loader detected on exFAT; migrate explicitly before installing an ESP loader' 39
+  fail 'legacy loader detected on the data filesystem; migrate explicitly before installing an ESP loader' 39
 fi
 
 # Never follow an installed-directory symlink or replace an existing boot entry.

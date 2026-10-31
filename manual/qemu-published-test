@@ -58,7 +58,7 @@ EXAMPLES
 
 LIMITATIONS
     The QEMU source is the published unexpanded 2 GiB disk image, not the
-    physical USB stick with its enlarged exFAT data partition. It checks
+    physical USB stick with its enlarged ext4 data partition. It checks
     the same boot partitions/loader payload as the flashed image but
     DOES NOT verify real USB firmware boot or physical device readability.
     Automated checksum/preparation PASS does not imply successful QEMU

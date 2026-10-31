@@ -2,7 +2,7 @@
 # Linux-specific operations sourced by usb-install.sh; no independent CLI.
 usb_require()
 {
-  for cmd in lsblk blockdev sgdisk partprobe udevadm mkfs.exfat mount umount fsck.exfat findmnt swapon
+  for cmd in lsblk blockdev sgdisk partprobe udevadm mkfs.ext4 mount umount e2fsck findmnt swapon
   do
     command -v "$cmd" >/dev/null 2>&1 || usb_fail "missing Linux tool: $cmd"
   done
@@ -97,10 +97,13 @@ usb_refresh()
 }
 usb_format_mount()
 {
-  sudo mkfs.exfat -n MBOOTDATA "$usb_partition" || usb_fail 'exFAT formatting failed'
+  sudo mkfs.ext4 -F -L MBOOTDATA "$usb_partition" || usb_fail 'ext4 formatting failed'
   mkdir "$usb_work/mount" || usb_fail 'cannot prepare mount directory'
-  sudo mount -t exfat -o "uid=$(id -u),gid=$(id -g)" "$usb_partition" "$usb_work/mount" ||
-    usb_fail 'cannot mount new exFAT filesystem'
+  sudo mount -t ext4 "$usb_partition" "$usb_work/mount" ||
+    usb_fail 'cannot mount new ext4 filesystem'
+    # Linux file copies must not require root after an initial ext4 format.
+  sudo chown "$(id -u):$(id -g)" "$usb_work/mount" ||
+    usb_fail 'cannot assign ext4 data root ownership'
   usb_mounted="$usb_work/mount"
   usb_mountpoint="$usb_mounted"
 }
@@ -111,5 +114,5 @@ usb_unmount()
 }
 usb_check_fs()
 {
-  sudo fsck.exfat -n "$usb_partition" || usb_fail 'exFAT integrity check failed'
+  sudo e2fsck -fn "$usb_partition" || usb_fail 'ext4 integrity check failed'
 }

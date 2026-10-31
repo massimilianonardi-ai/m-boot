@@ -24,7 +24,7 @@ jobs:
           test "$(uname -m)" = x86_64
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            gdisk qemu-utils dosfstools exfatprogs zstd zip unzip
+            gdisk qemu-utils dosfstools e2fsprogs zstd zip unzip
           ./tools/grub-mkimage --version
           ./tools/grub-bios-setup --version
           mk_version=$(./tools/grub-mkimage --version | awk '/\(GRUB\)/ { print $NF }')
@@ -44,7 +44,7 @@ jobs:
           sudo sgdisk --print "$raw"
           sudo sgdisk --info=1 "$raw" | grep -F 'BIOS boot partition'
           sudo sgdisk --info=2 "$raw" | grep -F 'EFI system partition'
-          sudo sgdisk --info=3 "$raw" | grep -F 'Microsoft basic data'
+          sudo sgdisk --info=3 "$raw" | grep -F 'Linux filesystem'
       - name: Compress the complete disk and the separately restorable loader
         run: |
           set -eu
@@ -73,6 +73,7 @@ jobs:
             printf 'targets=i386-pc,x86_64-efi,arm64-efi\n'
             printf 'loader_location=esp\n'
             printf 'data_role=payload-only\n'
+            printf 'data_filesystem=ext4\n'
             printf 'flash_is_destructive=yes\n'
             printf 'exfat_inplace_grow_supported=no\n'
           } > "$pub/BUILD-INFO.txt"
@@ -97,7 +98,7 @@ jobs:
           raw_hash=$(gzip -dc "$pub/repo/m-boot-combined.raw.gz" | sha256sum | awk '{print $1}')
           expected_hash=$(awk '{print $1}' "$pub/m-boot-combined.raw.sha256")
           test "$raw_hash" = "$expected_hash"
-      - name: Simulate larger USB, preserve ESP loader, recreate empty exFAT payload
+      - name: Simulate larger USB, preserve ESP loader, recreate empty ext4 payload
         run: |
           set -eu
           raw="$RUNNER_TEMP/m-boot-usb-build/m-boot-combined.raw"
@@ -108,7 +109,7 @@ jobs:
           start=$(sudo sgdisk --info=3 "$expanded" | awk '/First sector:/ {print $3}')
           test "$start" = 1071104
           sudo sgdisk -e "$expanded"
-          sudo sgdisk --delete=3 --new=3:"$start":0 --typecode=3:0700 "$expanded"
+          sudo sgdisk --delete=3 --new=3:"$start":0 --typecode=3:8300 "$expanded"
           sudo sgdisk --verify "$expanded"
           sudo cmp -n 440 "$raw" "$expanded"
           sudo cmp -n 10485760 -i 1048576:1048576 "$raw" "$expanded"
@@ -126,10 +127,10 @@ jobs:
           loop=$(sudo losetup --find --show --partscan "$expanded")
           test -b "$loop"p2
           test -b "$loop"p3
-          sudo mkfs.exfat -n MBOOTDATA "$loop"p3
-          sudo mount -t exfat "$loop"p3 "$mnt"
+          sudo mkfs.ext4 -F -L MBOOTDATA "$loop"p3
+          sudo mount -t ext4 "$loop"p3 "$mnt"
           sudo test ! -e "$mnt/m/boot/loader"
-          sudo test -z "$(sudo find "$mnt" -mindepth 1 -print -quit)"
+          sudo test -z "$(sudo find "$mnt" -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)"
           sudo mount -t vfat "$loop"p2 "$esp"
           for target in i386-pc x86_64-efi arm64-efi
           do
@@ -141,7 +142,7 @@ jobs:
           sync
           sudo umount "$esp"
           sudo umount "$mnt"
-          sudo fsck.exfat -n "$loop"p3
+          sudo e2fsck -fn "$loop"p3
           sudo losetup -d "$loop"
           loop=
           sudo sgdisk --verify "$expanded"
