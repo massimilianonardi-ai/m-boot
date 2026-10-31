@@ -44,9 +44,10 @@ jobs:
           sudo sgdisk --print "$raw"
           sudo sgdisk --info=1 "$raw" | grep -F 'BIOS boot partition'
           sudo sgdisk --info=2 "$raw" | grep -F 'EFI system partition'
-          if sudo sgdisk --info=3 "$raw" >/dev/null 2>&1
+          sudo sgdisk --print "$raw" > "$RUNNER_TEMP/boot-only-partitions.txt"
+          if awk '$1 ~ /^[0-9]+$/ && $1 >= 3 {found=1} END {exit !found}' "$RUNNER_TEMP/boot-only-partitions.txt"
           then
-            echo 'ERROR: boot-only image must not contain a third partition' >&2
+            echo 'ERROR: boot-only image contains a third or extra partition' >&2
             exit 1
           fi
       - name: Compress the complete disk and the separately restorable loader
@@ -114,7 +115,8 @@ jobs:
           start=$(sudo sgdisk --info=3 "$expanded" | awk '/First sector:/ {print $3}')
           test "$start" = 1071104
           sudo sgdisk -e "$expanded"
-          if sudo sgdisk --info=3 "$expanded" >/dev/null 2>&1
+          sudo sgdisk --print "$expanded" > "$RUNNER_TEMP/pre-provision-partitions.txt"
+          if awk '$1 ~ /^[0-9]+$/ && $1 >= 3 {found=1} END {exit !found}' "$RUNNER_TEMP/pre-provision-partitions.txt"
           then
             echo 'ERROR: boot-only source unexpectedly contains partition 3' >&2
             exit 1

@@ -28,9 +28,11 @@ usb_verify_boot_layout()
 }
 usb_require_no_data_partition()
 {
-  if sudo sgdisk -i 3 "$usb_disk" > "$usb_work/part-3" 2>&1
+  sudo sgdisk --print "$usb_disk" > "$usb_work/layout" ||
+    usb_fail 'cannot read partition table for boot-only guard'
+  if awk '$1 ~ /^[0-9]+$/ && $1 >= 3 { present=1 } END { exit !present }' "$usb_work/layout"
   then
-    usb_fail 'unexpected third partition in the boot-only image; refusing mutation'
+    usb_fail 'boot-only image contains unexpected data/extra partitions; refusing mutation'
   fi
 }
 usb_expand_gpt()
