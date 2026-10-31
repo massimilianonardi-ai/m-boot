@@ -101,6 +101,7 @@ archive="$dist/m-boot-combined.raw.gz"
   fail 'published image or checksums absent; git pull first' 13
 grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null &&
 grep -Fx 'partition_count=2' "$dist/BUILD-INFO.txt" >/dev/null &&
+grep -Fx 'disk_image_role=boot-only' "$dist/BUILD-INFO.txt" >/dev/null &&
 grep -Fx 'image_bytes=603979776' "$dist/BUILD-INFO.txt" >/dev/null ||
   fail 'published image is not the compact two-partition ESP-loader revision' 14
 

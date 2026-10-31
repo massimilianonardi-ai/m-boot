@@ -63,6 +63,45 @@ jobs:
             sudo test -s "$esp/m/boot/loader/$target/normal.mod"
           done
           echo 'PASS: public image contains complete ESP loader and no data partition'
+      - name: Exercise production GPT and ext4 operations on disposable 4 GiB image
+        run: |
+          set -eu
+          raw="$RUNNER_TEMP/public.raw"
+          disk="$RUNNER_TEMP/installer-4g.raw"
+          cp --sparse=always "$raw" "$disk"
+          truncate -s 4G "$disk"
+          usb_work=$(mktemp -d "$RUNNER_TEMP/installer-test.XXXXXXXX")
+          loop=
+          usb_mounted=
+          cleanup() {
+            if [ -n "$usb_mounted" ]; then sudo umount "$usb_mounted" || :; fi
+            if [ -n "$loop" ]; then sudo losetup -d "$loop" || :; fi
+            rm -rf -- "$usb_work"
+          }
+          trap cleanup EXIT
+          loop=$(sudo losetup --find --show --partscan "$disk")
+          test "$(sudo losetup -n -O BACK-FILE "$loop")" = "$disk"
+          usb_disk="$loop"
+          usb_bytes=$(sudo blockdev --getsize64 "$usb_disk")
+          usb_fail() { printf 'simulation: %s\n' "$1" >&2; exit 1; }
+          usb_info() { printf 'simulation: %s\n' "$1"; }
+          . ./tools/usb-gpt.sh
+          . ./tools/usb-target-linux.sh
+          usb_require
+          usb_expand_gpt
+          usb_refresh
+          usb_format_mount
+          test -d "$usb_work/mount/m/boot/iso"
+          test -w "$usb_work/mount/m/boot/iso"
+          usb_unmount
+          usb_check_fs
+          if (usb_require_no_data_partition)
+          then
+            echo 'ERROR: data-partition guard accepted a provisioned disk' >&2
+            exit 1
+          fi
+          sudo sgdisk --verify "$usb_disk"
+          echo 'PASS: production Linux GPT and ext4 routines on a disposable disk image'
       - name: Exercise real interactive preflight with 16 MiB file quota
         run: |
           set -eu
