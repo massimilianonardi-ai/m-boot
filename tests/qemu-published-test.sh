@@ -150,7 +150,7 @@ fi
   fail 'gzip decompression failed' 22
 bytes=$(wc -c < "$image" | tr -d '[:space:]') ||
   fail 'cannot inspect raw image length' 23
-[ "$bytes" = 2147483648 ] ||
+[ "$bytes" = 603979776 ] ||
   fail "unexpected raw image length: $bytes" 24
 raw_hash=$(sha256sum "$image" | awk '{ print $1 }') ||
   fail 'cannot hash raw disk image' 25
