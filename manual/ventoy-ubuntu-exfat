@@ -14,7 +14,8 @@ INPUTS
       https://releases.ubuntu.com/26.04.1/SHA256SUMS
 
 PREPARE
-    Linux x86_64; requires sudo, losetup, lsblk, blkid, mount, partprobe,
+    Linux host with official Ventoy x86_64/aarch64 tools; requires sudo,
+    losetup, lsblk, blkid, mount, partprobe,
     parted, GNU coreutils, tar and enough free space (ISO ~6 GiB).
     Obtain the official Ventoy archive separately, not a git source tree.
     Use the exact operator ISO; a checksum mismatch is a hard failure.
@@ -30,6 +31,21 @@ PREPARE
     /m/boot/iso/ and readback-hashed. It prints the resulting raw disk path,
     alongside experiment.txt and results.md. It does not remove the image;
     delete the experiment directory only after preserving results.
+
+RECOVER AFTER VERIFIED INSTALL AND LOOP DETACH FAILURE
+    On some losetup versions, "losetup -d -- /dev/loopN" detaches the loop
+    then erroneously attempts to detach "/dev/--". Earlier prepare revisions
+    used this form AFTER successfully copying and hashing the ISO. Recover
+    the existing image without reinstalling Ventoy, without modifying exFAT:
+
+    ./tests/ventoy-ubuntu-exfat.sh recover \
+      --disk /path/to/ventoy-ubuntu.XXXXXXXX/ventoy-bios.raw \
+      --iso /path/to/ubuntu-26.04.1-desktop-amd64.iso
+
+    It attaches the existing file as a READ-ONLY loop, checks the backing
+    path, Ventoy release version marker, 12 GiB size, exFAT and the copied
+    ISO SHA256, then detaches and creates only experiment.txt/results.md.
+    Do not run another prepare on the existing directory or physical USB.
 
 NORMAL BOOT
     ./tests/ventoy-ubuntu-exfat.sh boot \
