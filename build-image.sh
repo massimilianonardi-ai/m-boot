@@ -125,7 +125,7 @@ cleanup()
   then
     rm -rf -- "$work"
   else
-    printf 'm-boot qemu-combined-image: incomplete cleanup; inspect %s (loop %s)\n' "$work" "$loop" >&2
+    printf 'm-boot build-image: incomplete cleanup; inspect %s (loop %s)\n' "$work" "$loop" >&2
   fi
 }
 trap cleanup 0
@@ -139,7 +139,7 @@ then
   archive_version=$(awk '$1 == "grub-common" { print $2 }' "$work/i386-pc-build-info.txt")
   bios_setup_version=$("$bios_setup" --version | awk 'END { print $NF }')
   [ -n "$archive_version" ] && [ "$bios_setup_version" = "$archive_version" ] || fail "GRUB BIOS setup version mismatch: archive=$archive_version, host=$bios_setup_version" 53
-  printf 'm-boot qemu-combined-image: verified bundled BIOS boot.img version=%s\n' "$archive_version"
+  printf 'm-boot build-image: verified bundled BIOS boot.img version=%s\n' "$archive_version"
 fi
 
 mkdir "$work/esp" || fail 'cannot create mountpoints' 23
@@ -165,7 +165,7 @@ esp_mounted=yes
 
 # The second ESP installation adds BOOTAA64.EFI without replacing its loader.
 "$root/install.sh" --stage "$stages/x86_64-efi" --esp "$work/esp" --apply || fail 'x86_64 UEFI install failed' 35
-"$root/install.sh" --stage "$stages/arm64-efi" --esp "$work/esp" --data "$work/data" --apply || fail 'ARM64 UEFI install failed' 36
+"$root/install.sh" --stage "$stages/arm64-efi" --esp "$work/esp" --apply || fail 'ARM64 UEFI install failed' 36
 [ -s "$work/esp/EFI/BOOT/BOOTX64.EFI" ] || fail 'x86_64 UEFI image not installed' 37
 [ -s "$work/esp/EFI/BOOT/BOOTAA64.EFI" ] || fail 'ARM64 UEFI image not installed' 38
 [ -f "$work/esp/m/boot/loader/init" ] || fail 'common external ESP loader missing' 39
