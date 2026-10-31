@@ -1,5 +1,6 @@
 #!/bin/sh
-# Shared GPT verification and partition-3 expansion; sourced by usb-install.sh.
+# Shared GPT verification and creation of the new full-device ext4 partition.
+# Sourced by usb-install.sh only, AFTER a separately authorized disk flash.
 usb_gpt_info()
 {
   sudo sgdisk -i "$1" "$usb_disk" > "$usb_work/part-$1"
@@ -12,10 +13,10 @@ usb_gpt_field()
     type) awk '/^Partition GUID code:/ { print $4 }' "$usb_work/part-$1" ;;
   esac
 }
-usb_verify_layout()
+usb_verify_boot_layout()
 {
-  usb_gpt_info 1 && usb_gpt_info 2 && usb_gpt_info 3 ||
-    usb_fail 'cannot inspect all three GPT partitions'
+  usb_gpt_info 1 && usb_gpt_info 2 ||
+    usb_fail 'cannot inspect BIOS/ESP GPT partitions'
   [ "$(usb_gpt_field 1 first)" = 2048 ] &&
     [ "$(usb_gpt_field 1 last)" = 22527 ] &&
     [ "$(usb_gpt_field 1 type)" = 21686148-6449-6E6F-744E-656564454649 ] ||
@@ -24,21 +25,33 @@ usb_verify_layout()
     [ "$(usb_gpt_field 2 last)" = 1071103 ] &&
     [ "$(usb_gpt_field 2 type)" = C12A7328-F81F-11D2-BA4B-00A0C93EC93B ] ||
     usb_fail 'unexpected EFI partition layout/type'
-  [ "$(usb_gpt_field 3 first)" = 1071104 ] &&
-    [ "$(usb_gpt_field 3 type)" = 0FC63DAF-8483-4772-8E79-3D69D8477DE4 ] ||
-    usb_fail 'unexpected third partition layout/type'
+}
+usb_require_no_data_partition()
+{
+  if sudo sgdisk -i 3 "$usb_disk" > "$usb_work/part-3" 2>&1
+  then
+    usb_fail 'unexpected third partition in the boot-only image; refusing mutation'
+  fi
 }
 usb_expand_gpt()
 {
-  sudo sgdisk -e "$usb_disk" || usb_fail 'cannot relocate GPT backup'
-  sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after relocating backup'
-  usb_verify_layout
-  sudo sgdisk -d 3 -n 3:1071104:0 -t 3:8300 "$usb_disk" ||
-    usb_fail 'cannot expand third partition'
+  # Image has exactly two partitions and GPT backup at its own end.
+  # Move the backup GPT to the real disk end before allocating data space.
+  sudo sgdisk -e "$usb_disk" || usb_fail 'cannot relocate backup GPT'
+  sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after relocation'
+  usb_verify_boot_layout
+  usb_require_no_data_partition
+  sudo sgdisk -n 3:1071104:0 -t 3:8300 -c 3:MBOOTDATA "$usb_disk" ||
+    usb_fail 'cannot create ext4 payload partition'
   sudo sgdisk -G "$usb_disk" || usb_fail 'cannot randomize cloned GPT identifiers'
-  sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after expansion'
-  usb_verify_layout
+  sudo sgdisk --verify "$usb_disk" || usb_fail 'invalid GPT after adding data partition'
+  usb_verify_boot_layout
+  usb_gpt_info 3 || usb_fail 'missing new data partition'
+  [ "$(usb_gpt_field 3 first)" = 1071104 ] &&
+    [ "$(usb_gpt_field 3 type)" = 0FC63DAF-8483-4772-8E79-3D69D8477DE4 ] ||
+    usb_fail 'unexpected data partition layout/type'
   last=$(usb_gpt_field 3 last)
   expected=$((usb_bytes / 512 - 34))
-  [ "$last" = "$expected" ] || usb_fail 'third partition does not occupy remaining usable disk'
+  [ "$last" = "$expected" ] ||
+    usb_fail 'third partition does not occupy remaining usable disk'
 }

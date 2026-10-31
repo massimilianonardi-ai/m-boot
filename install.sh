@@ -5,13 +5,13 @@ set -eu
 usage()
 {
   cat <<'HELP'
-Usage: install.sh --stage DIR --esp DIR --data DIR [--apply] [--allow-directory]
+Usage: install.sh --stage DIR --esp DIR [--apply] [--allow-directory]
 
 Without --apply: show an installation plan, make NO changes.
 --apply: copy only into missing EFI/BOOT/BOOT*.EFI and ESP m/boot/loader paths.
          Existing EFI files are NEVER overwritten. An existing external
          loader directory is reused only when its content is identical.
---allow-directory: allow ordinary directories rather than mounted vfat/ext4
+--allow-directory: allow ordinary directories rather than a mounted vfat
          filesystems (for disposable staging/tests only, not a bootable install).
 
 No partitioning, formatting, raw device writes, or BIOS boot-sector changes.
@@ -28,18 +28,16 @@ fail()
 
 stage=
 esp=
-data=
 apply=no
 allow_dir=no
 while [ "$#" -gt 0 ]
 do
   case "$1" in
-    --stage|--esp|--data)
+    --stage|--esp)
       [ "$#" -ge 2 ] && [ -n "$2" ] || fail "missing value for $1" 3
       case "$1" in
         --stage) stage=$2 ;;
         --esp) esp=$2 ;;
-        --data) data=$2 ;;
       esac
       shift 2 ;;
     --apply) apply=yes; shift ;;
@@ -49,22 +47,17 @@ do
   esac
 done
 
-[ -n "$stage" ] && [ -n "$esp" ] && [ -n "$data" ] || { usage >&2; fail 'stage, esp, data are required' 5; }
-for name in "$stage" "$esp" "$data"
+[ -n "$stage" ] && [ -n "$esp" ] || { usage >&2; fail 'stage and esp are required' 5; }
+for name in "$stage" "$esp"
 do
   [ -d "$name" ] || fail "directory does not exist: $name" 6
 done
 stage=$(CDPATH= cd -- "$stage" && pwd -P) || fail 'cannot resolve stage directory' 7
 esp=$(CDPATH= cd -- "$esp" && pwd -P) || fail 'cannot resolve ESP directory' 8
-data=$(CDPATH= cd -- "$data" && pwd -P) || fail 'cannot resolve data directory' 9
 
-[ "$esp" != / ] && [ "$data" != / ] || fail 'refusing to install into filesystem root' 10
-[ "$esp" != "$data" ] || fail 'ESP and data must be distinct directories' 11
-case "$esp/" in "$data/"*) fail 'ESP nested inside data directory' 12 ;; esac
-case "$data/" in "$esp/"*) fail 'data nested inside ESP directory' 13 ;; esac
-case "$stage/" in "$esp/"*|"$data/"*) fail 'stage is inside installation destination' 14 ;; esac
+[ "$esp" != / ] || fail 'refusing to install into filesystem root' 10
+case "$stage/" in "$esp/"*) fail 'stage is inside installation destination' 14 ;; esac
 case "$esp/" in "$stage/"*) fail 'ESP is inside build stage' 15 ;; esac
-case "$data/" in "$stage/"*) fail 'data is inside build stage' 16 ;; esac
 
 info=$stage/stage-info
 [ -f "$info" ] && [ ! -L "$info" ] || fail 'invalid stage: missing stage-info' 17
@@ -88,16 +81,7 @@ if [ "$allow_dir" = no ]
 then
   command -v findmnt >/dev/null 2>&1 || fail 'findmnt required to validate mountpoints' 24
   esp_type=$(findmnt -n -M "$esp" -o FSTYPE) || fail "ESP is not a mountpoint: $esp" 25
-  data_type=$(findmnt -n -M "$data" -o FSTYPE) || fail "data is not a mountpoint: $data" 26
   [ "$esp_type" = vfat ] || fail "ESP must be mounted vfat/FAT32; found $esp_type" 27
-  [ "$data_type" = ext4 ] || fail "data must be mounted ext4; found $data_type" 28
-fi
-
-# A legacy installation may still contain the loader on the data filesystem. Never
-# silently leave two executable loader copies or delete existing user data.
-if [ -e "$data/m/boot/loader" ] || [ -L "$data/m/boot/loader" ]
-then
-  fail 'legacy loader detected on the data filesystem; migrate explicitly before installing an ESP loader' 39
 fi
 
 # Never follow an installed-directory symlink or replace an existing boot entry.

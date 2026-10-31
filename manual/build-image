@@ -1,0 +1,35 @@
+NAME
+    build-image.sh - assemble one boot-only BIOS/dual-UEFI GPT disk
+
+SYNOPSIS
+    sudo ./build-image.sh --stages DIR --output DIR
+                          [--bios-modules-dir DIR]
+
+DESCRIPTION
+    Takes three verified current build.sh stages and creates a NEW
+    576 MiB raw GPT image with:
+       1  EF02  10 MiB      BIOS Boot partition, GRUB i386-pc embedded
+       2  EF00  512 MiB     FAT32 ESP, x86_64 + ARM64 EFI firmware files
+       -        NOT CREATED: payload/data partition 3
+
+    ESP contains /EFI/BOOT/BOOTX64.EFI and BOOTAA64.EFI and the external
+    /m/boot/loader/ tree (menus, themes and GRUB modules for three targets).
+    BIOS bootstrap uses the image-backed loop device and matching GRUB
+    boot.img/core.img. GRUB does not need a data partition to boot its
+    external loader. Only an image file is written, not a physical disk.
+    The image's GPT backup is correctly placed at its finite end.
+
+    The installer later relocates the backup GPT to the target disk's
+    end and creates/formats ext4 partition 3 in remaining free space.
+    No ext4 filesystem appears inside the distributed image.
+
+REQUIREMENTS
+    Linux x86_64 with root for temporary loop, qemu-img, sgdisk,
+    losetup, mkfs.vfat, mount/umount, bundled version-matched
+    grub-bios-setup and staged GRUB files. Existing output is rejected.
+
+EXAMPLE
+    sudo ./build-image.sh --stages ./build/stages --output ./build
+
+SEE ALSO
+    manual/build-all, manual/build, manual/usb-image

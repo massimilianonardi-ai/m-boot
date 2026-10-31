@@ -13,7 +13,7 @@ Usage: qemu-combined-test.sh --output DIR [--stages DIR]
 
 Without --stages, builds all three target images in DIR/stages/.
 With --stages, uses three existing build.sh stages from the supplied dir.
-Prepares exactly one GPT disk DIR/m-boot-combined.raw, then boots the same
+Prepares exactly one boot-only GPT disk DIR/m-boot-combined.raw, then boots the same
 image in BIOS x86_64, UEFI x86_64 and UEFI ARM64 (one QEMU window at a time).
 No physical disk is opened. Run as root for the image loop mounts.
 --prepare-only creates the disk without starting QEMU; qemu-run.sh can then
@@ -25,7 +25,7 @@ fail()
   printf 'm-boot qemu-combined-test: error: %s\n' "$1" >&2
   exit "$2"
 }
-[ "$(uname -s)" = Linux ] || fail 'Linux required' 1
+[ "$(uname -s)" = Linux ] && [ "$(uname -m)" = x86_64 ] || fail 'Linux x86_64 required' 1
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P) || fail 'cannot find repository root' 2
 output=
 stages=
@@ -84,7 +84,7 @@ if [ -n "$bios_modules" ]
 then
   set -- "$@" --bios-modules-dir "$bios_modules"
 fi
-"$root/tests/qemu-combined-image.sh" "$@" || fail 'combined GPT image creation failed' 12
+"$root/build-image.sh" "$@" || fail 'combined GPT image creation failed' 12
 disk="$output/m-boot-combined.raw"
 printf 'm-boot qemu-combined-test: one shared GPT image: %s\n' "$disk"
 if [ "$prepare_only" = yes ]

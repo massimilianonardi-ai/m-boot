@@ -14,7 +14,7 @@ DESCRIPTION
     automatically when present and verified. Target-specific modules may be supplied
     explicitly using the --modules-* options. With --stages, uses
     prebuilt target directories from other compatible Linux build hosts.
-    Calls qemu-combined-image.sh to create one new raw GPT disk.
+    Calls build-image.sh to create one new boot-only 576 MiB raw GPT disk.
     After loader discovery, boot/init selects /m/boot/loader as the
     runtime GRUB prefix, allowing target-specific graphical modules to
     load dynamically. The embedded bootstrap does not contain GUI modules.
@@ -68,7 +68,7 @@ THREE TARGET MODULE SETS AND STAGES STORED IN GIT
 
 
 REQUIREMENTS
-    Linux root to prepare virtual GPT/mount filesystems, three target
+    Linux x86_64 root to prepare boot-only GPT/ESP, three target
     GRUB module sets or prebuilt stages, i386-pc boot.img, GRUB BIOS
     setup, plus QEMU emulators and OVMF/AAVMF firmware for interactive
     execution. Cross-host stages must be from compatible GRUB versions

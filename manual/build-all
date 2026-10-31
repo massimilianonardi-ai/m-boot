@@ -1,0 +1,36 @@
+NAME
+    build-all.sh - produce all m-boot firmware variants and a boot-only disk
+
+SYNOPSIS
+    sudo ./build-all.sh --output DIR [--modules-bios DIR]
+      [--modules-x64 DIR] [--modules-arm64 DIR] [--bios-modules-dir DIR]
+
+DESCRIPTION
+    On Linux x86_64, rebuilds i386-pc BIOS core.img, UEFI x86_64
+    BOOTX64.EFI, UEFI ARM64 BOOTAA64.EFI and the common external m-loader
+    from current repository sources and version-checked GRUB module packs.
+    Calls build-image.sh to produce one 576 MiB GPT disk containing only
+    partition 1 BIOS Boot and partition 2 FAT32 ESP. No partition 3 is
+    created in this image. Its GPT backup is valid for the image size.
+    Refuses to overwrite an existing build stage or disk.
+
+    Root is required to attach and mount a temporary file-backed loop
+    device for FAT32 ESP assembly and BIOS embedding, not a physical disk.
+    This is a Linux x86_64-only build; installer architecture is separate.
+
+OUTPUT
+    DIR/stages/{i386-pc,x86_64-efi,arm64-efi}/
+    DIR/m-boot-combined.raw
+
+EXAMPLE
+    sudo ./build-all.sh --output /tmp/m-boot-build
+
+LIMITATIONS
+    Output is a boot-only image, not a data-bearing or already-provisioned
+    USB disk. The image must pass validation/publication before the real
+    usb-install.sh can flash it. ISO and ext4 payloads are never part of
+    the build output. The file-backed QEMU firmware boot is a separate
+    test; compiling is not proof of boot.
+
+SEE ALSO
+    manual/build, manual/build-image, manual/usb-image

@@ -32,11 +32,12 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) ||
   usb_fail 'cannot locate repository'
 dist="$root/images"
 os=$(uname -s)
-case "$os" in
-  Linux) adapter="$root/tools/usb-target-linux.sh" ;;
-  Darwin) adapter="$root/tools/usb-target-macos.sh" ;;
-  *) usb_fail "unsupported host: $os" ;;
+[ "$os" = Linux ] || usb_fail 'installer supports Linux only'
+case "$(uname -m)" in
+  x86_64|aarch64) ;;
+  *) usb_fail 'installer host must be Linux x86_64 or ARM64' ;;
 esac
+adapter="$root/tools/usb-target-linux.sh"
 [ -f "$adapter" ] || usb_fail 'platform adapter missing'
 . "$adapter"
 . "$root/tools/usb-gpt.sh"
@@ -56,12 +57,7 @@ usb_cleanup()
 {
   if [ -n "$usb_mounted" ]
   then
-    if [ "$os" = Linux ]
-    then
-      sudo umount "$usb_mounted" >&2 || :
-    else
-      sudo diskutil unmount "$usb_mounted" >&2 || :
-    fi
+    sudo umount "$usb_mounted" >&2 || :
   fi
   rm -rf -- "$usb_work"
 }
@@ -121,7 +117,13 @@ unzip -tqq "$dist/m-boot-loader.zip" ||
 grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null ||
   usb_fail 'published image does not have the ESP loader'
 grep -Fx 'data_filesystem=ext4' "$dist/BUILD-INFO.txt" >/dev/null ||
-  usb_fail 'published image has not yet been rebuilt for ext4; refuse destructive install'
+  usb_fail 'published image does not declare ext4 target'
+grep -Fx 'partition_count=2' "$dist/BUILD-INFO.txt" >/dev/null ||
+  usb_fail 'published disk image is NOT boot-only (must contain exactly two partitions)'
+image_bytes=$(awk -F= '$1 == "image_bytes" { print $2 }' "$dist/BUILD-INFO.txt")
+[ "$image_bytes" = 603979776 ] ||
+  usb_fail 'unexpected boot-only image size; refuse destructive install'
+usb_image_blocks=$((image_bytes / 4194304))
 gzip -t "$dist/m-boot-combined.raw.gz" ||
   usb_fail 'compressed image has a CRC/decompression error'
 expected_hash=$(awk '$2 == "m-boot-combined.raw" { print $1 }' "$dist/RAW-SHA256SUMS")
@@ -162,7 +164,7 @@ usb_id=$(usb_identity "$usb_disk")
 
 printf '\nALL DATA AND PARTITIONS ON %s WILL BE DESTROYED.\n' "$usb_disk"
 printf 'The disk will be flashed and partition 3 recreated as full-size ext4.\n'
-printf 'macOS cannot mount or write ext4 natively; copy ISO payloads from Linux.\n'
+printf 'All current data on the selected disk will be erased; user handles backup.\n'
 printf 'Type exactly "ERASE %s" to confirm: ' "$usb_disk"
 IFS= read -r answer || usb_fail 'no confirmation'
 [ "$answer" = "ERASE $usb_disk" ] ||
@@ -171,12 +173,12 @@ usb_eligible "$usb_disk" || usb_fail 'disk changed before write'
 sudo -v || usb_fail 'administrator authorization failed'
 usb_prepare
 
-usb_info "streaming verified 2 GiB GPT image onto $usb_disk"
+usb_info "streaming verified 576 MiB boot-only GPT image onto $usb_disk"
 usb_write_stream
 sync
 usb_info 'verifying written image against raw SHA256'
 usb_verify_disk
-usb_info 'relocating GPT and extending partition 3'
+usb_info 'relocating GPT and creating ext4 partition 3'
 usb_expand_gpt
 usb_refresh
 usb_info 'formatting payload-only ext4 (m-loader is already on the ESP)'

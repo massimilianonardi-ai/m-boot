@@ -1,48 +1,27 @@
 NAME
-    install.sh - safely copy a staged m-boot UEFI image to prepared mounts
+    install.sh - stage a GRUB UEFI image and external loader on an ESP
 
 SYNOPSIS
-    ./install.sh --stage DIR --esp DIR --data DIR [--apply]
-                 [--allow-directory]
+    ./install.sh --stage DIR --esp DIR [--apply] [--allow-directory]
 
 DESCRIPTION
-    This standalone Linux installer accepts two existing, separate mountpoints
-    (vfat ESP with the full loader and ext4 payload partition) and a build.sh stage for x86_64-efi
-    or arm64-efi. It never formats, partitions, calls dd or grub-install, or
-    writes to raw block devices. Existing EFI fallback files are never
-    overwritten. An existing m/boot/loader directory is reused only when
-    its recursive contents on the ESP match the staged loader exactly; if different,
-    installation fails without merging or replacing existing files.
-    The ext4 mount is validated but contains no m-loader; it is reserved
-    for external tools, bootable ISO images, virtual machines and other
-    large payloads such as backups. Built-in loader files (including
-    theme, configuration and GRUB modules) are installed on the ESP only.
-    The default mode is a no-write plan. --apply is required to copy files.
-    If a file copy fails after writing begins, partial files may remain;
-    the error explicitly reports that possibility.
+    Installs one staged x86_64-efi or arm64-efi firmware executable
+    and the shared source-controlled m-loader under a prepared FAT32 ESP.
+    Does NOT partition, format, write boot sectors or require a data
+    partition. By default only prints a plan; --apply writes files.
 
-OPTIONS
-    --stage            Required build.sh output directory for one target.
-    --esp              Required already-mounted FAT32 ESP root directory.
-    --data             Required already-mounted ext4 data root directory.
-    --apply            Explicitly copy missing files (default: dry run).
-                       An identical already-installed loader is not recopied.
-    --allow-directory  Bypass mount/fs checks for disposable test directories
-                       ONLY; this is not real-media validation.
-    --help             Print usage.
+    Existing EFI firmware entries are never overwritten. An already
+    present external loader is accepted only if its complete contents
+    match the staged loader. Different installed loader trees are not
+    merged or silently replaced. The ESP must be a mounted vfat volume.
+    --allow-directory is only for disposable staging, not real media.
 
-EXAMPLES
-    ./install.sh --stage ./dist/x86_64-efi --esp /mnt/esp --data /mnt/data
-    ./install.sh --stage ./dist/x86_64-efi --esp /mnt/esp --data /mnt/data --apply
+    i386-pc BIOS embedding is a separate build-image.sh responsibility,
+    and is never performed through file copying by this command.
 
-LIMITATIONS
-    This tool does not install BIOS boot sectors. i386-pc stages require a
-    separately reviewed disk installation procedure, not a file copy.
-    A second EFI architecture can be installed on the same ESP if the new
-    fallback filename is unused and the ESP loader is identical.
-    Updating/replacing files is a separate task requiring deliberate backup
-    and confirmation semantics.
-    Preparation of the initial partitions is a separate safety-gated task.
+EXAMPLE
+    ./install.sh --stage ./build/stages/x86_64-efi --esp /mnt/esp
+    ./install.sh --stage ./build/stages/x86_64-efi --esp /mnt/esp --apply
 
 SEE ALSO
-    manual/build
+    manual/build, manual/build-image, manual/usb-image

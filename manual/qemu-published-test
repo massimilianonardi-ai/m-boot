@@ -11,7 +11,7 @@ DESCRIPTION
     Validates the exact images/m-boot-combined.raw.gz distribution that
     usb-install.sh flashes onto physical media. Checks SHA256 of the
     compressed image, checks that its metadata requires the complete
-    loader on the ESP, decompresses to one private sparse 2 GiB raw image
+    loader on the ESP, decompresses to one private sparse 576 MiB raw image
     under DIR and validates its size and raw SHA256. This requires GNU dd
     and enough host filesystem space/quota for the sparse raw image.
     DIR defaults to the current working directory (NOT /tmp).
@@ -57,8 +57,8 @@ EXAMPLES
     ./tests/qemu-published-test.sh --verify-only
 
 LIMITATIONS
-    The QEMU source is the published unexpanded 2 GiB disk image, not the
-    physical USB stick with its enlarged ext4 data partition. It checks
+    The QEMU source is the published unexpanded 576 MiB disk image, not the
+    physical USB stick with its new ext4 data partition. It checks
     the same boot partitions/loader payload as the flashed image but
     DOES NOT verify real USB firmware boot or physical device readability.
     Automated checksum/preparation PASS does not imply successful QEMU

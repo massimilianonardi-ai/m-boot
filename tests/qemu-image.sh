@@ -147,7 +147,7 @@ else
   if [ "$scenario" = loader ]
   then
     root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P) || fail 'cannot locate installer' 38
-    "$root/install.sh" --stage "$stage" --esp "$work/esp" --data "$work/data" --apply || fail 'safe UEFI install failed' 39
+    "$root/install.sh" --stage "$stage" --esp "$work/esp" --apply || fail 'safe UEFI install failed' 39
   else
     mkdir -p "$work/esp/EFI/BOOT" || fail 'cannot create UEFI firmware path' 40
     cp "$stage/esp/EFI/BOOT/$efi" "$work/esp/EFI/BOOT/$efi" || fail 'cannot copy EFI image for recovery scenario' 41

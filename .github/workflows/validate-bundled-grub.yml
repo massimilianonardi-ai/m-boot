@@ -10,7 +10,8 @@ on:
       - boot/**
       - grub-modules-bios.cfg
       - grub-modules-efi.cfg
-      - tests/qemu-combined-image.sh
+      - build-image.sh
+      - build-all.sh
       - tests/qemu-combined-test.sh
       - loader/**
       - .github/workflows/validate-bundled-grub.yml
@@ -35,7 +36,7 @@ jobs:
       - name: Syntax and real GRUB builds using Git archives
         run: |
           set -eu
-          sh -n build.sh tests/qemu-combined-image.sh tests/qemu-combined-test.sh
+          sh -n build.sh build-image.sh build-all.sh tests/qemu-combined-test.sh
           for target in i386-pc x86_64-efi arm64-efi
           do
             echo "===== standalone bundled build: $target ====="

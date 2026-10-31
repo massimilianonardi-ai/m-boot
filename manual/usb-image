@@ -1,115 +1,69 @@
 NAME
-    usb-install.sh - interactively flash and provision a complete m-boot disk
+    usb-install.sh - flash verified boot-only m-boot image and provision ext4
 
 SYNOPSIS
     ./usb-install.sh
 
 DESCRIPTION
-    One command installs the complete BIOS x86_64, UEFI x86_64 and UEFI
-    ARM64 m-boot image. It lists physical disks with numbers, prompts for
-    a selection, displays the selected disk (including partition layout,
-    filesystem and volume labels, model, serial and size when reported),
-    and requires the operator to type ERASE followed by the exact selected
-    device identifier. There are no device operands and no default target.
+    Operator-controlled destructive installer for Linux x86_64 and ARM64.
+    No whole-disk device is accepted as a CLI operand or chosen by default.
+    The command lists actual physical disks, displays their identity and
+    layout, and requires the user to type ERASE followed by the exact
+    chosen device identifier. It refuses system mountpoints, active swap,
+    unstable disk identity and unsupported logical-sector sizes.
 
-    AFTER CONFIRMATION it writes the verified image to the selected whole
-    disk using dd, moves the backup GPT to the device end, keeps the BIOS
-    and EFI partition geometry fixed, recreates partition 3 to occupy all
-    remaining usable sectors, formats partition 3 as empty ext4; the complete loader stays on
-    the unchanged ESP. All old data on the selected disk is destroyed.
-    This is a one-time disk provisioning operation, NOT an update method
-    for a data-bearing m-boot disk or an ISO installation command.
+    After confirmation it streams the SHA256-verified 576 MiB boot-only
+    image onto the selected whole disk, reads back the written region
+    and verifies its hash BEFORE modifying GPT. It relocates the backup
+    GPT to the actual end of the device, verifies BIOS/ESP partition
+    geometry and the absence of partition 3, and only then creates
+    partition 3 (Linux GPT type 8300) using the remaining usable space.
+    Formats partition 3 ext4 as MBOOTDATA, assigns the invoking user
+    ownership of the ext4 root, creates /m/boot/iso and checks the
+    filesystem. No GRUB build is done on the installer host.
 
-PUBLIC DISTRIBUTION
-    GitHub Actions workflow .github/workflows/build-usb-image.yml runs
-    the real build on Ubuntu 24.04 x86_64 and, after verification, commits
-    the public, downloadable image to the m-boot repository:
-
-        images/m-boot-combined.raw.gz
-        images/m-boot-loader.zip
-        images/SHA256SUMS
-        images/RAW-SHA256SUMS
-        images/BUILD-INFO.txt
-
-    No GitHub Actions account or expiring artifact is needed for a normal
-    public git clone or pull. The workflow also keeps its existing
-    downloadable run artifact for troubleshooting. Image publication is a
-    forward Git commit and can fail on a concurrent remote update rather
-    than overwriting other commits. A failed build does not publish a new
-    image. BUILD-INFO identifies the source commit, not the publication
-    commit. Rebuilding may change binary provenance and Git blob IDs.
-
-PLATFORMS AND REQUIREMENTS
-    Install/build runtime: standalone. Linux and macOS supported by the
-    user-facing script; GRUB is not built on the selected operator host.
-    The logical sector size must be 512 bytes and disk capacity at least
-    2 GiB. Internal and external physical disks are listed. After confirmation,
-    ordinary Linux data volumes mounted under /media, /run/media or /mnt
-    are unmounted automatically; system mounts, active swap and a checkout
-    on the selected disk are refused. macOS unmounts the selected disk
-    before writing. The entire selected device is destroyed, not
-    merely its existing ext4 partition. Partitions cannot be silently
-    identified by a guessed /dev/sdX or diskN.
-
-    The script requires POSIX sh, gzip, unzip, checksumming tools and
-    administrator authorization. Linux additionally needs lsblk, gdisk/sgdisk, partprobe,
-    udevadm and e2fsprogs. macOS requires diskutil/plutil, gdisk and
-    keg-only Homebrew e2fsprogs to format/check the raw ext4 partition;
-    it cannot natively mount or write ext4. Use Linux to copy ISOs. All dependencies are checked BEFORE
-    any physical disk write. A missing tool or stale kernel partition
-    map stops safely with a diagnostic rather than guessing a device.
-
-BOOT MEDIA GEOMETRY (512-BYTE LOGICAL SECTORS)
-    Partition 1: EF02, LBAs 2048..22527 (10 MiB BIOS Boot, no filesystem)
+BOOT-ONLY IMAGE GEOMETRY (512-byte logical sectors)
+    Published raw image: 603979776 bytes (576 MiB).
+    Partition 1: EF02, LBAs 2048..22527 (10 MiB BIOS Boot)
     Partition 2: EF00, LBAs 22528..1071103 (512 MiB FAT32 ESP)
-    Partition 3: 8300, starts at LBA 1071104 (ext4 payload/data only)
+    Partition 3: ABSENT, created by installer only.
+    Backup GPT: at the end of the 576 MiB distributed raw image.
 
-    The installed firmware executables are EFI/BOOT/BOOTX64.EFI and
-    EFI/BOOT/BOOTAA64.EFI on the same ESP, with complete GRUB runtime
-    modules for all three targets under /m/boot/loader on the FAT32 ESP.
-    The third partition starts empty and is reserved for external tools,
-    bootable ISO images, virtual machines and other large payloads (such as
-    backups). Built-in m-loader scripts, menus, themes, configuration and
-    all supported GRUB runtime module trees stay on the FAT32 ESP.
-    No loader component is moved to ext4 merely because it is loaded
-    dynamically rather than embedded in a GRUB EFI executable.
-    images/m-boot-loader.zip is an independent backup of the ESP loader,
-    NOT content restored onto ext4. The installer rejects legacy
-    published images lacking BUILD-INFO.txt loader_location=esp. Fresh GPT
-    disk and partition GUIDs are generated to avoid duplicate media IDs.
+    The resulting installed disk has the same firmware partitions
+    plus ext4 MBOOTDATA starting at LBA 1071104, ending at the last
+    usable sector before the relocated backup GPT. GPT disk and
+    partition IDs are regenerated so cloned media do not share IDs.
 
-USE
-    git clone https://github.com/massimilianonardi-ai/m-boot.git
-    cd m-boot
-    ./usb-install.sh
+PROVENANCE AND INTEGRITY
+    images/m-boot-combined.raw.gz, m-boot-loader.zip,
+    SHA256SUMS, RAW-SHA256SUMS and BUILD-INFO.txt are committed to Git
+    by the x86_64 build workflow. BUILD-INFO must explicitly declare
+    partition_count=2 and image_bytes=603979776. Older images (including
+    the original 2 GiB images containing partition 3) are rejected
+    BEFORE any destructive write. GRUB firmware and m-loader resources
+    live exclusively on the FAT32 ESP. Data ISO payloads are not baked
+    into the published image.
 
-    The installer verifies both compressed-distribution and decompressed
-    raw-disk SHA256 by streaming gzip into a checksum calculation; it
-    DOES NOT materialize a 2 GiB raw image in /tmp (or require 2 GiB of
-    host disk quota). Only small control files are staged temporarily. It lists numbered disks, shows full selected-
-    device details, and waits for typed authorization. Following consent,
-    gzip is streamed directly into dd. Before altering GPT/partition 3,
-    the first 2 GiB are read back from the device and verified against
-    RAW-SHA256SUMS. The original ESP loader remains present throughout
-    third-partition expansion and ext4 formatting. Any stream, dd or
-    readback failure aborts without formatting. No manual dd, GPT edit or filesystem expansion commands
-    are necessary after selection.
+REQUIREMENTS AND SCOPE
+    Linux x86_64/ARM64, POSIX sh, gzip, unzip, sha256sum, dd,
+    util-linux block tools, gdisk/sgdisk, e2fsprogs, mount/umount
+    and administrator authentication. Only 512-byte logical-sector
+    physical disks of at least 2 GiB are supported in this release.
+    The operating-system source filesystem is not modified.
 
-VALIDATION LIMITS
-    GitHub CI validates real GRUB image construction, GPT preparation,
-    publication archive checks and a real loop-backed larger-disk ext4
-    restoration. A CI test image is not a physical USB/Thunderbolt disk.
-    Changing an existing populated exFAT data volume to ext4 requires
-    backup, a separately authorized reformat of ONLY partition 3 and
-    data restoration. Running usb-install.sh destroys the entire disk;
-    it is NOT a migration operation. GRUB's BIOS/ESP partitions need
-    not be reinstalled just to change the payload filesystem.
+    This installer is deliberately NOT a migration or update command:
+    it erases ALL partitions and files on the selected whole disk.
+    The operator alone owns backing up and restoring old USB files,
+    and decides separately when to authorize real physical flashing.
+    macOS native ext4 mounting and Windows boot are not current goals.
 
-    Booting actual devices with BIOS x86_64, UEFI x86_64 and UEFI ARM64,
-    and running the interactive physical-target installer on both hosts,
-    remain separate physical validation obligations. The workflow does
-    not claim Secure Boot, Apple Silicon boot or arbitrary ISO support.
+VALIDATION
+    Verify SHA256, compact GPT with exactly two partitions, staged
+    firmware/ESP modules, and a disposable larger-disk provisioning
+    trial before physical flashing. QEMU BIOS, x86_64 UEFI and ARM64 UEFI
+    firmware tests require their own observed results. Reaching the
+    Ubuntu installer transition then running out of QEMU RAM is NOT
+    a complete Ubuntu boot PASS.
 
 SEE ALSO
-    manual/build, manual/qemu-published-test, manual/qemu-combined-test,
-    manual/qemu-combined-image
+    manual/build-all, manual/build-image, manual/boot-media

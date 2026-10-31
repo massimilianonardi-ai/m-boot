@@ -5,7 +5,6 @@ on:
       - usb-install.sh
       - tools/usb-gpt.sh
       - tools/usb-target-linux.sh
-      - tools/usb-target-macos.sh
       - .github/workflows/validate-usb-installer.yml
       - images/**
   workflow_dispatch:
@@ -19,7 +18,7 @@ jobs:
       - name: Parse scripts and verify public distribution
         run: |
           set -eu
-          sh -n usb-install.sh tools/usb-gpt.sh tools/usb-target-linux.sh tools/usb-target-macos.sh
+          sh -n usb-install.sh tools/usb-gpt.sh tools/usb-target-linux.sh
           ./usb-install.sh --help
           (cd images && sha256sum -c SHA256SUMS)
           gzip -t images/m-boot-combined.raw.gz
@@ -35,23 +34,26 @@ jobs:
           set -eu
           grep -Fx 'loader_location=esp' images/BUILD-INFO.txt
           grep -Fx 'data_filesystem=ext4' images/BUILD-INFO.txt
+          grep -Fx 'partition_count=2' images/BUILD-INFO.txt
           gzip -dc images/m-boot-combined.raw.gz > "$RUNNER_TEMP/public.raw"
           sha256sum "$RUNNER_TEMP/public.raw" | awk '{ print $1 }' > "$RUNNER_TEMP/public.hash"
           awk '{ print $1 }' images/RAW-SHA256SUMS > "$RUNNER_TEMP/expected.hash"
           cmp "$RUNNER_TEMP/public.hash" "$RUNNER_TEMP/expected.hash"
           loop=
           esp=$(mktemp -d)
-          data=$(mktemp -d)
           cleanup() {
             if mountpoint -q "$esp"; then sudo umount "$esp"; fi
-            if mountpoint -q "$data"; then sudo umount "$data"; fi
             if [ -n "$loop" ]; then sudo losetup -d "$loop"; fi
-            rmdir "$esp" "$data" 2>/dev/null || :
+            rmdir "$esp" 2>/dev/null || :
           }
           trap cleanup EXIT
           loop=$(sudo losetup --find --show --partscan "$RUNNER_TEMP/public.raw")
           sudo mount -t vfat -o ro "$loop"p2 "$esp"
-          sudo mount -t ext4 -o ro,noload "$loop"p3 "$data"
+          if sudo sgdisk --info=3 "$RUNNER_TEMP/public.raw" >/dev/null 2>&1
+          then
+            echo 'unexpected data partition in boot-only distribution' >&2
+            exit 1
+          fi
           sudo test -s "$esp/m/boot/loader/init"
           sudo test -s "$esp/EFI/BOOT/BOOTX64.EFI"
           sudo test -s "$esp/EFI/BOOT/BOOTAA64.EFI"
@@ -59,9 +61,7 @@ jobs:
           do
             sudo test -s "$esp/m/boot/loader/$target/normal.mod"
           done
-          sudo test ! -e "$data/m/boot/loader"
-          sudo test -z "$(sudo find "$data" -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)"
-          echo 'PASS: public combined image contains complete ESP loader; ext4 payload is empty'
+          echo 'PASS: public image contains complete ESP loader and no data partition'
       - name: Exercise real interactive preflight with 16 MiB file quota
         run: |
           set -eu
@@ -90,35 +90,3 @@ jobs:
             echo 'Unexpected streaming preflight failure' >&2
             exit 1
           fi
-  macos:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-      - name: Parse scripts and verify public distribution with native macOS tools
-        run: |
-          set -eu
-          sh -n usb-install.sh tools/usb-gpt.sh tools/usb-target-linux.sh tools/usb-target-macos.sh
-          ./usb-install.sh --help
-          (cd images && shasum -a 256 -c SHA256SUMS)
-          gzip -t images/m-boot-combined.raw.gz
-          unzip -tqq images/m-boot-loader.zip
-      - name: Verify native diskutil and plist schema read-only
-        run: |
-          set -eu
-          diskutil list physical
-          disk=$(diskutil list internal physical | awk '/^\/dev\/disk[0-9]+ / { print $1; exit }')
-          test -n "$disk"
-          diskutil info -plist "$disk" > "$RUNNER_TEMP/disk-info.plist"
-          for key in WholeDisk Internal VirtualOrPhysical TotalSize DeviceBlockSize DeviceIdentifier
-          do
-            plutil -extract "$key" raw -o - "$RUNNER_TEMP/disk-info.plist"
-          done
-          # Exercise the actual platform adapter's read-only selection logic.
-          usb_work="$RUNNER_TEMP"
-          usb_fail() { printf '%s\n' "$1" >&2; exit 1; }
-          . ./tools/usb-target-macos.sh
-          usb_eligible "$disk"
-          usb_list | grep -Fx "$disk"
-          test "$(usb_sector "$disk")" = 512
-          test "$(usb_identity "$disk")" = "$(basename "$disk")"
-          echo "Validated the macOS native metadata and physical disk enumeration without disk writes"

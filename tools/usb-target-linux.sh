@@ -82,8 +82,8 @@ usb_write()
 }
 usb_readback()
 {
-  # Read exactly the unchanged 2 GiB image region, before GPT edits.
-  sudo dd if="$usb_disk" bs=4M count=512 status=none
+  # Read exactly the unchanged compact image, before GPT edits.
+  sudo dd if="$usb_disk" bs=4M count="$usb_image_blocks" status=none
 }
 usb_refresh()
 {
@@ -104,6 +104,8 @@ usb_format_mount()
     # Linux file copies must not require root after an initial ext4 format.
   sudo chown "$(id -u):$(id -g)" "$usb_work/mount" ||
     usb_fail 'cannot assign ext4 data root ownership'
+  mkdir -p "$usb_work/mount/m/boot/iso" ||
+    usb_fail 'cannot create writable ISO directory on new ext4 volume'
   usb_mounted="$usb_work/mount"
   usb_mountpoint="$usb_mounted"
 }

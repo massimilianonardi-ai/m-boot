@@ -99,8 +99,10 @@ archive="$dist/m-boot-combined.raw.gz"
   [ -f "$dist/SHA256SUMS" ] && [ -f "$dist/RAW-SHA256SUMS" ] &&
   [ -f "$dist/BUILD-INFO.txt" ] ||
   fail 'published image or checksums absent; git pull first' 13
-grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null ||
-  fail 'published image is not the ESP-loader revision' 14
+grep -Fx 'loader_location=esp' "$dist/BUILD-INFO.txt" >/dev/null &&
+grep -Fx 'partition_count=2' "$dist/BUILD-INFO.txt" >/dev/null &&
+grep -Fx 'image_bytes=603979776' "$dist/BUILD-INFO.txt" >/dev/null ||
+  fail 'published image is not the compact two-partition ESP-loader revision' 14
 
 expected_compressed=$(awk '$2 == "m-boot-combined.raw.gz" { print $1 }' "$dist/SHA256SUMS")
 expected_raw=$(awk '$2 == "m-boot-combined.raw" { print $1 }' "$dist/RAW-SHA256SUMS")

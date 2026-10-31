@@ -1,30 +1,30 @@
 #!/bin/sh
-# Prepare ONE disposable GPT disk for BIOS, x86_64 UEFI and ARM64 UEFI.
+# Build ONE boot-only GPT disk for BIOS, x86_64 UEFI and ARM64 UEFI.
 set -eu
 
 usage()
 {
   cat <<'HELP'
-Usage: qemu-combined-image.sh --stages DIR --output DIR [--bios-modules-dir DIR]
+Usage: build-image.sh --stages DIR --output DIR [--bios-modules-dir DIR]
 
 DIR must contain build.sh stages: i386-pc/, x86_64-efi/, arm64-efi/.
-Creates a new output/m-boot-combined.raw; refuses to overwrite it.
+Creates a new 576 MiB output/m-boot-combined.raw; refuses overwrite.
 Uses only a temporary raw file/loop device, never a physical disk operand.
 GPT layout: 10 MiB BIOS Boot (EF02), 512 MiB FAT32 ESP (both UEFI
-architectures), remainder ext4 (payload/data only; shared m-loader resides on ESP).
-Requires Linux root to mount the two image filesystems.
+architectures), with NO partition 3. The installer creates ext4 later.
+Requires Linux x86_64 and root to create the FAT32 ESP in a raw image.
 BIOS modules: --bios-modules-dir > verified tracked archive > host directory.
 HELP
 }
 
 fail()
 {
-  printf 'm-boot qemu-combined-image: error: %s\n' "$1" >&2
+  printf 'm-boot build-image: error: %s\n' "$1" >&2
   exit "$2"
 }
 
-[ "$(uname -s)" = Linux ] || fail 'Linux required' 1
-root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P) || fail 'cannot resolve project root' 2
+[ "$(uname -s)" = Linux ] && [ "$(uname -m)" = x86_64 ] || fail 'Linux x86_64 build host required' 1
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || fail 'cannot resolve project root' 2
 stages=
 output=
 bios_modules=
@@ -95,7 +95,7 @@ if [ "$bios_from_archive" = no ]
 then
   [ -n "$bios_modules" ] && [ -f "$bios_modules/boot.img" ] || fail 'BIOS boot.img absent; pass --bios-modules-dir or use tracked archive' 15
 fi
-for program in qemu-img sgdisk losetup mkfs.vfat mkfs.ext4 mount umount findmnt
+for program in qemu-img sgdisk losetup mkfs.vfat mount umount findmnt
 do
   command -v "$program" >/dev/null 2>&1 || fail "missing command: $program" 16
 done
@@ -110,14 +110,9 @@ image="$output/m-boot-combined.raw"
 work=$(mktemp -d "$output/.m-boot-combined.XXXXXXXX") || fail 'cannot create private workspace' 22
 loop=
 esp_mounted=no
-data_mounted=no
 cleanup()
 {
   ok=yes
-  if [ "$data_mounted" = yes ]
-  then
-    umount "$work/data" || ok=no
-  fi
   if [ "$esp_mounted" = yes ]
   then
     umount "$work/esp" || ok=no
@@ -147,34 +142,29 @@ then
   printf 'm-boot qemu-combined-image: verified bundled BIOS boot.img version=%s\n' "$archive_version"
 fi
 
-mkdir "$work/esp" "$work/data" || fail 'cannot create mountpoints' 23
+mkdir "$work/esp" || fail 'cannot create mountpoints' 23
 raw="$work/disk.raw"
-qemu-img create -f raw "$raw" 2G || fail 'qemu-img create failed' 24
+qemu-img create -f raw "$raw" 576M || fail 'qemu-img create failed' 24
 sgdisk --clear --new=1:2048:+10M --typecode=1:EF02 \
-  --new=2:0:+512M --typecode=2:EF00 \
-  --new=3:0:0 --typecode=3:8300 "$raw" || fail 'GPT partitioning failed' 25
+  --new=2:0:+512M --typecode=2:EF00 "$raw" || fail 'GPT partitioning failed' 25
 sgdisk --verify "$raw" || fail 'GPT verification failed' 26
 loop=$(losetup --find --show --partscan "$raw") || fail 'loop attach failed' 27
 case "$loop" in /dev/loop[0-9]*) ;; *) fail "unexpected loop: $loop" 28 ;; esac
 [ "$(losetup -n -O BACK-FILE "$loop")" = "$raw" ] || fail 'loop backing-file check failed' 29
 esp_dev="${loop}p2"
-data_dev="${loop}p3"
 n=0
-while { [ ! -b "$esp_dev" ] || [ ! -b "$data_dev" ]; } && [ "$n" -lt 10 ]
+while { [ ! -b "$esp_dev" ]; } && [ "$n" -lt 10 ]
 do
   sleep 1
   n=$((n + 1))
 done
-[ -b "$esp_dev" ] && [ -b "$data_dev" ] || fail 'loop partitions unavailable' 30
+[ -b "$esp_dev" ] && [ ! -b "${loop}p3" ] || fail 'loop partitions unavailable' 30
 mkfs.vfat -F 32 -n MBOOTESP "$esp_dev" || fail 'virtual FAT32 formatting failed' 31
-mkfs.ext4 -F -L MBOOTDATA "$data_dev" || fail 'virtual ext4 formatting failed' 32
 mount -t vfat "$esp_dev" "$work/esp" || fail 'cannot mount virtual ESP' 33
 esp_mounted=yes
-mount -t ext4 "$data_dev" "$work/data" || fail 'cannot mount virtual data' 34
-data_mounted=yes
 
-# The second installer pass adds BOOTAA64.EFI on the same ESP without replacing its loader.
-"$root/install.sh" --stage "$stages/x86_64-efi" --esp "$work/esp" --data "$work/data" --apply || fail 'x86_64 UEFI install failed' 35
+# The second ESP installation adds BOOTAA64.EFI without replacing its loader.
+"$root/install.sh" --stage "$stages/x86_64-efi" --esp "$work/esp" --apply || fail 'x86_64 UEFI install failed' 35
 "$root/install.sh" --stage "$stages/arm64-efi" --esp "$work/esp" --data "$work/data" --apply || fail 'ARM64 UEFI install failed' 36
 [ -s "$work/esp/EFI/BOOT/BOOTX64.EFI" ] || fail 'x86_64 UEFI image not installed' 37
 [ -s "$work/esp/EFI/BOOT/BOOTAA64.EFI" ] || fail 'ARM64 UEFI image not installed' 38
@@ -182,10 +172,7 @@ data_mounted=yes
 [ -s "$work/esp/m/boot/loader/i386-pc/normal.mod" ] || fail 'BIOS modules absent from ESP loader' 58
 [ -s "$work/esp/m/boot/loader/x86_64-efi/normal.mod" ] || fail 'x86_64 modules absent from ESP loader' 59
 [ -s "$work/esp/m/boot/loader/arm64-efi/normal.mod" ] || fail 'ARM64 modules absent from ESP loader' 60
-[ ! -e "$work/data/m/boot/loader" ] || fail 'loader must not be stored on ext4' 61
 sync
-umount "$work/data" || fail 'data unmount failed' 40
-data_mounted=no
 umount "$work/esp" || fail 'ESP unmount failed' 41
 esp_mounted=no
 [ "$(losetup -n -O BACK-FILE "$loop")" = "$raw" ] || fail 'loop backing changed before BIOS setup' 42
@@ -200,4 +187,4 @@ losetup -d "$loop" || fail 'loop detach failed' 44
 loop=
 [ ! -e "$image" ] && [ ! -L "$image" ] || fail 'output image appeared during preparation' 45
 mv -- "$raw" "$image" || fail 'cannot publish combined image' 46
-printf 'm-boot qemu-combined-image: created %s\n' "$image"
+printf 'm-boot build-image: created %s\n' "$image"
