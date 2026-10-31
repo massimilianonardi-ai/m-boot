@@ -112,8 +112,9 @@ jobs:
           pub="$RUNNER_TEMP/m-boot-publish"
           sudo cp --sparse=always "$raw" "$expanded"
           sudo truncate -s 4G "$expanded"
-          start=$(sudo sgdisk --info=3 "$expanded" | awk '/First sector:/ {print $3}')
-          test "$start" = 1071104
+          esp_end=$(sudo sgdisk --info=2 "$expanded" | awk '/Last sector:/ {print $3}')
+          test "$esp_end" = 1071103
+          start=$((esp_end + 1))
           sudo sgdisk -e "$expanded"
           sudo sgdisk --print "$expanded" > "$RUNNER_TEMP/pre-provision-partitions.txt"
           if awk '$1 ~ /^[0-9]+$/ && $1 >= 3 {found=1} END {exit !found}' "$RUNNER_TEMP/pre-provision-partitions.txt"

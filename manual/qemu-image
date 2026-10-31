@@ -26,7 +26,7 @@ SCENARIOS
 REQUIREMENTS
     Linux root with working loop/partition/mount support; qemu-img, sgdisk,
     losetup, mkfs.vfat, mkfs.ext4, mount/umount, findmnt and filesystem
-    support for vfat and exfat. BIOS also needs grub-bios-setup and a
+    support for vfat and ext4. BIOS also needs grub-bios-setup and a
     matching --bios-modules-dir with boot.img. The stage must come from
     build.sh with matching GRUB modules. This command may create temporary
     loop devices and only writes sectors inside its new raw image file.

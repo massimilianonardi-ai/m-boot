@@ -57,7 +57,7 @@ EXAMPLES
     ./tests/qemu-published-test.sh --verify-only
 
 LIMITATIONS
-    The QEMU source is the published unexpanded 576 MiB disk image, not the
+    The QEMU source is the published boot-only 576 MiB disk image, not the
     physical USB stick with its new ext4 data partition. It checks
     the same boot partitions/loader payload as the flashed image but
     DOES NOT verify real USB firmware boot or physical device readability.

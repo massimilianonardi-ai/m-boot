@@ -83,4 +83,4 @@ RESULTS
     tested by this workflow.
 
 SEE ALSO
-    manual/qemu-combined-image, manual/qemu-run, manual/build
+    manual/build-image, manual/qemu-run, manual/build

@@ -122,7 +122,8 @@ PERSISTENT GRUB TARGET MODULE PACKAGES IN GIT
 NOTES
     The tool checks for required GRUB modules but does not prove that firmware
     will boot the resulting image. Test with GRUB/QEMU before deployment.
-    The legacy target-build.sh remains untouched.
+    Superseded legacy build entrypoints have been removed; use build-all.sh
+    to orchestrate all three targets and the compact disk image.
 
 SEE ALSO
     manual/install

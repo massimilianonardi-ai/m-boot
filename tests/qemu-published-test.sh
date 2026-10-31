@@ -9,7 +9,7 @@ usage()
 Usage: tests/qemu-published-test.sh [--target all|i386-pc|x86_64-efi|arm64-efi]
                                     [--output DIR] [--verify-only]
 
-Runs the same published BIOS + dual-UEFI 2 GiB image under all three QEMU
+Runs the same published BIOS + dual-UEFI 576 MiB boot-only image under all three QEMU
 firmwares by default, showing one graphical window at a time. After closing
 each QEMU window, type PASS or FAIL according to the displayed m-loader menu.
 The script does not infer a successful boot from the QEMU exit status.
@@ -155,7 +155,7 @@ raw_hash=$(sha256sum "$image" | awk '{ print $1 }') ||
   fail 'cannot hash raw disk image' 25
 [ "$raw_hash" = "$expected_raw" ] ||
   fail 'decompressed raw image SHA256 mismatch' 26
-info "verified one immutable 2 GiB raw image (SHA256=$raw_hash)"
+info "verified one immutable 576 MiB boot-only raw image (SHA256=$raw_hash)"
 
 if [ "$verify_only" = yes ]
 then
