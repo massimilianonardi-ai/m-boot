@@ -1,11 +1,12 @@
-source_commit=2180a81e9f090bd47c0b30a3a2dcfeefe858ab7f
+source_commit=c0bd076654c593561735d03c8097d17512c4de2c
 host=x86_64
 grub=2.12-1ubuntu7.3
-image_bytes=2147483648
+image_bytes=603979776
 target_sector_bytes=512
 targets=i386-pc,x86_64-efi,arm64-efi
 loader_location=esp
 data_role=payload-only
 data_filesystem=ext4
+partition_count=2
 flash_is_destructive=yes
-exfat_inplace_grow_supported=no
+disk_image_role=boot-only
