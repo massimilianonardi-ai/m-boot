@@ -13,6 +13,7 @@ usage()
   cat <<'HELP'
 Usage:
   tests/ventoy-ubuntu-exfat.sh prepare --iso ISO --ventoy-tar ARCHIVE --output DIR
+  tests/ventoy-ubuntu-exfat.sh recover --disk DISPOSABLE_RAW --iso ISO
   tests/ventoy-ubuntu-exfat.sh boot --disk DISPOSABLE_RAW --mode normal|grub2
 
 prepare creates a NEW 12 GiB sparse image in DIR and installs official Ventoy
@@ -20,6 +21,8 @@ prepare creates a NEW 12 GiB sparse image in DIR and installs official Ventoy
 DESTROY THE NEW IMAGE; it never receives a physical disk or external path.
 The input ISO and Ventoy archive must match their official SHA256 values.
 The ISO is copied to exFAT at /m/boot/iso/ and readback-verified.
+recover validates an interrupted preparation using a read-only loop/mount,
+checks the ISO again, and creates only the missing result/manifest files.
 
 boot uses x86_64 BIOS, i440fx pc, TCG, 2048 MiB, two vCPUs, IDE and QEMU
 snapshot mode. In normal mode, select the ISO then Normal mode. Only if it
@@ -41,6 +44,32 @@ check_hash()
 {
   actual=$(sha256sum "$1" | awk '{print $1}') || fail "cannot hash $1" 3
   [ "$actual" = "$2" ] || fail "SHA256 mismatch: $1 (observed $actual)" 4
+}
+
+record_verified_experiment()
+{
+  [ ! -e "$work/experiment.txt" ] || fail 'experiment manifest already exists; refusing overwrite' 45
+  [ ! -e "$work/results.md" ] || fail 'results file already exists; refusing overwrite' 46
+  {
+    printf 'experiment=ventoy-ubuntu-exfat-1.1.18\n'
+    printf 'ventoy_sha256=%s\n' "$VENTOY_SHA256"
+    printf 'ubuntu_sha256=%s\n' "$UBUNTU_SHA256"
+    printf 'ubuntu_iso_source=%s\n' "$iso"
+    printf 'filesystem=exfat\npartition_style=gpt\nfirmware=bios\n'
+    printf 'qemu_machine=pc\nqemu_accel=tcg\nqemu_mem_mib=2048\nqemu_vcpus=2\nqemu_disk=ide-hd\n'
+    printf 'guest_iso=/m/boot/iso/%s\n' "$UBUNTU_NAME"
+  } > "$work/experiment.txt"
+  cat > "$work/results.md" <<'RESULTS'
+# Ventoy Ubuntu 26.04.1 exFAT boot observations
+
+- Normal mode: NOT EXECUTED / PASS / FAIL (select one)
+- GRUB2 mode: NOT EXECUTED / PASS / FAIL (select one; run only after normal failure)
+- Success requires Ubuntu live root/desktop, not splash, kernel or initramfs.
+- For each run: capture GRUB/menu, kernel messages, BusyBox errors or live terminal.
+- Live diagnostics: `cat /proc/cmdline`, `findmnt /`, `lsblk -f`, `mount`, `ls -l /dev/mapper/`, `sudo vtoydump -l` (if available).
+- Failed initramfs diagnostics: `cat /proc/cmdline`, `cat /proc/filesystems`, `blkid`, `ls /dev/mapper`, `dmesg | tail`.
+- Compare the ISO mapping with the m-boot ash baseline; classify mechanism only from observed evidence.
+RESULTS
 }
 
 [ "$(uname -s)" = Linux ] || fail 'Linux host required' 1
@@ -86,7 +115,7 @@ case "$command" in
     cleanup()
     {
       if [ "$mounted" = yes ]; then sudo -n umount -- "$mountpoint" || :; fi
-      if [ -n "$loop" ]; then sudo -n losetup -d -- "$loop" || :; fi
+      if [ -n "$loop" ]; then sudo -n losetup -d "$loop" || :; fi
     }
     trap cleanup 0
     trap 'exit 130' 1 2 3 15
@@ -124,29 +153,93 @@ case "$command" in
     [ "$copied" = "$UBUNTU_SHA256" ] || fail 'ISO readback SHA256 mismatch' 33
     sudo -n umount -- "$mountpoint" || fail 'cannot unmount copied ISO partition' 34
     mounted=no
-    sudo -n losetup -d -- "$loop" || fail 'cannot detach disposable disk' 35
+    sudo -n losetup -d "$loop" || fail 'cannot detach disposable disk' 35
     loop=
-    {
-      printf 'experiment=ventoy-ubuntu-exfat-1.1.18\n'
-      printf 'ventoy_sha256=%s\n' "$VENTOY_SHA256"
-      printf 'ubuntu_sha256=%s\n' "$UBUNTU_SHA256"
-      printf 'ubuntu_iso_source=%s\n' "$iso"
-      printf 'filesystem=exfat\npartition_style=gpt\nfirmware=bios\n'
-      printf 'qemu_machine=pc\nqemu_accel=tcg\nqemu_mem_mib=2048\nqemu_vcpus=2\nqemu_disk=ide-hd\n'
-      printf 'guest_iso=/m/boot/iso/%s\n' "$UBUNTU_NAME"
-    } > "$work/experiment.txt"
-    cat > "$work/results.md" <<'RESULTS'
-# Ventoy Ubuntu 26.04.1 exFAT boot observations
-
-- Normal mode: NOT EXECUTED / PASS / FAIL (select one)
-- GRUB2 mode: NOT EXECUTED / PASS / FAIL (select one; run only after normal failure)
-- Success requires Ubuntu live root/desktop, not splash, kernel or initramfs.
-- For each run: capture GRUB/menu, kernel messages, BusyBox errors or live terminal.
-- Live diagnostics: `cat /proc/cmdline`, `findmnt /`, `lsblk -f`, `mount`, `ls -l /dev/mapper/`, `sudo vtoydump -l` (if available).
-- Failed initramfs diagnostics: `cat /proc/cmdline`, `cat /proc/filesystems`, `blkid`, `ls /dev/mapper`, `dmesg | tail`.
-- Compare the ISO mapping with the m-boot ash baseline; classify mechanism only from observed evidence.
-RESULTS
+    record_verified_experiment
     printf '\nPREPARED: %s\n' "$disk"
+    printf 'Manifest: %s\nResults: %s\n' "$work/experiment.txt" "$work/results.md"
+    printf 'Boot: %s boot --disk "%s" --mode normal\n' "$0" "$disk"
+    ;;
+  recover)
+    disk=
+    iso=
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --disk|--iso)
+          [ "$#" -ge 2 ] && [ -n "$2" ] || fail "missing value: $1" 47
+          case "$1" in
+            --disk) disk=$2 ;;
+            --iso) iso=$2 ;;
+          esac
+          shift 2 ;;
+        *) fail "unknown recover option: $1" 48 ;;
+      esac
+    done
+    [ -n "$disk" ] && [ -n "$iso" ] || fail 'recover needs --disk and --iso' 49
+    [ -f "$disk" ] && [ ! -L "$disk" ] && [ "$(basename -- "$disk")" = ventoy-bios.raw ] ||
+      fail 'recover accepts only a regular non-symlink ventoy-bios.raw image' 50
+    [ -f "$iso" ] && [ ! -L "$iso" ] && [ "$(basename -- "$iso")" = "$UBUNTU_NAME" ] ||
+      fail 'recover needs the original regular Ubuntu ISO' 51
+    for tool in sha256sum awk sudo losetup mount umount blkid lsblk grep stat; do require "$tool"; done
+    check_hash "$iso" "$UBUNTU_SHA256"
+    iso=$(CDPATH= cd -- "$(dirname -- "$iso")" && pwd -P)/$(basename -- "$iso")
+    work=$(CDPATH= cd -- "$(dirname -- "$disk")" && pwd -P)
+    disk="$work/ventoy-bios.raw"
+    case "$(basename -- "$work")" in
+      ventoy-ubuntu.????????) ;;
+      *) fail 'disk is not inside a named disposable Ventoy experiment directory' 52 ;;
+    esac
+    version_file="$work/package/ventoy-$VERSION/ventoy/version"
+    [ -f "$version_file" ] && grep -Fx "$VERSION" "$version_file" >/dev/null ||
+      fail 'official Ventoy package/version checkpoint missing' 53
+    [ ! -e "$work/experiment.txt" ] && [ ! -e "$work/results.md" ] ||
+      fail 'experiment already has results/manifest; refusing to overwrite' 54
+    bytes=$(stat -c %s -- "$disk") || fail 'cannot measure disposable raw image' 55
+    [ "$bytes" = 12884901888 ] || fail "unexpected image size: $bytes" 56
+    sudo -v || fail 'sudo authorization needed for read-only image verification' 57
+    mountpoint="$work/exfat"
+    [ -d "$mountpoint" ] || fail 'previous experiment mount directory missing' 58
+    loop=
+    mounted=no
+    cleanup()
+    {
+      if [ "$mounted" = yes ]; then sudo -n umount -- "$mountpoint" || :; fi
+      if [ -n "$loop" ]; then sudo -n losetup -d "$loop" || :; fi
+    }
+    trap cleanup 0
+    trap 'exit 130' 1 2 3 15
+    loop=$(sudo -n losetup --find --show --read-only --partscan -- "$disk") ||
+      fail 'cannot attach existing image read-only' 59
+    case "$loop" in
+      /dev/loop*)
+        number=${loop#/dev/loop}
+        case "$number" in ''|*[!0-9]*) fail "unexpected loop identity: $loop" 60 ;; esac ;;
+      *) fail "non-loop device returned: $loop" 61 ;;
+    esac
+    backing=$(sudo -n cat "/sys/class/block/loop$number/loop/backing_file") ||
+      fail 'cannot verify read-only loop backing file' 62
+    [ "$backing" = "$disk" ] || fail "loop backing-file mismatch: $backing" 63
+    [ "$(lsblk -dn -o TYPE -- "$loop" | tr -d '[:space:]')" = loop ] ||
+      fail 'unexpected block-device type' 64
+    part="${loop}p1"
+    [ -b "$part" ] || fail "Ventoy partition missing: $part" 65
+    fstype=$(sudo -n blkid -s TYPE -o value -- "$part") ||
+      fail 'cannot identify data partition filesystem' 66
+    [ "$fstype" = exfat ] || fail "expected exFAT, got: $fstype" 67
+    sudo -n mount -t exfat -o ro -- "$part" "$mountpoint" ||
+      fail 'cannot mount image exFAT read-only' 68
+    mounted=yes
+    guest_iso="$mountpoint/m/boot/iso/$UBUNTU_NAME"
+    [ -f "$guest_iso" ] || fail 'ISO is missing inside disposable exFAT image' 69
+    copied=$(sudo -n sha256sum "$guest_iso" | awk '{print $1}') ||
+      fail 'cannot hash ISO copied into image' 70
+    [ "$copied" = "$UBUNTU_SHA256" ] || fail 'image ISO SHA256 mismatch' 71
+    sudo -n umount -- "$mountpoint" || fail 'cannot unmount read-only experiment image' 72
+    mounted=no
+    sudo -n losetup -d "$loop" || fail 'cannot detach read-only experiment loop' 73
+    loop=
+    record_verified_experiment
+    printf '\nRECOVERED VERIFIED IMAGE: %s\n' "$disk"
     printf 'Manifest: %s\nResults: %s\n' "$work/experiment.txt" "$work/results.md"
     printf 'Boot: %s boot --disk "%s" --mode normal\n' "$0" "$disk"
     ;;
