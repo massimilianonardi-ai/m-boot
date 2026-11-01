@@ -50,6 +50,8 @@ jobs:
           grep -F 'source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-install
+          grep -F 'linux (loop)/vmlinuz gfxpayload=text quiet nomodeset boot=live toram=filesystem.squashfs findiso="$iso_path"' loader/menu/boot-media-install
+          grep -F 'initrd (loop)/initrd.img' loader/menu/boot-media-install
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-network
           grep -F 'mt86p_900_x86_64' loader/menu/boot-media-diagnostics
           grep -F 'mt86p_900_arm64' loader/menu/boot-media-diagnostics
