@@ -50,7 +50,7 @@ done
 esp=$(CDPATH= cd -- "$esp" && pwd -P) || fail 'cannot resolve ESP mountpoint'
 [ "$esp" != / ] || fail 'refusing filesystem root'
 
-for cmd in findmnt lsblk mktemp cp cmp mv rm sync
+for cmd in findmnt lsblk mktemp cp cmp mv rm mkdir sync
 do
   command -v "$cmd" >/dev/null 2>&1 || fail "missing tool: $cmd"
 done
