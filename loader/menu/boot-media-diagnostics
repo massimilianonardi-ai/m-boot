@@ -1,23 +1,27 @@
-# Memtest86+ v9 image: try the ISO's own GRUB / EFI loader. The ISO
-# name alone does not determine its embedded BIOS/UEFI binary layout.
-for image in "$isopath"/memtest86plus_*.iso
-do
-  if [ -f "$image" ]
-  then
-    boot_media_iso_experimental "$image" "$image"
-  fi
-done
+# Memtest86+ ISO provided here is an x86_64 image. The ARM64 firmware
+# requires an architecture-specific native Memtest binary instead.
+if [ "$grub_cpu" != arm64 ]
+then
+  for image in "$isopath"/memtest86plus_*x86_64.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+fi
 
-# Unpacked architecture-specific Memtest86+ binaries, if the operator
-# also copied them under MBOOTDATA/m/boot/efi/memtest.
+# Optional unpacked firmware-specific Memtest binaries. v9 distributions
+# have varied leaf names and some EFI binaries have no .efi extension.
+# Chainloading still requires that the selected binary match the CPU.
 if [ "$grub_platform" = efi ]
 then
-  for image in "$efipath"/memtest/mt86p_900_*.efi \
+  for image in "$efipath"/memtest/mt86p_900_* \
     "$efipath"/memtest/memtest*.efi
   do
     if [ -f "$image" ]
     then
-      menuentry "$image (UEFI chainload, experimental)" "$image" {
+      menuentry "$image (experimental EFI binary)" "$image" {
         chainloader "$2"
         boot
       }
