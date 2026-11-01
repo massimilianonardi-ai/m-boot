@@ -118,8 +118,12 @@ BOOT COMPATIBILITY AND LIMITATIONS
     bridge/boot recipe; their menu presence is not proof of compatibility.
 
     Operator's latest test (2026-11-01) confirms native Memtest86+
-    starts successfully. Grml passes its initial boot but stops later
-    reporting a missing component (exact text not yet supplied).
+    starts successfully. Grml reaches an error involving unresolved
+    GRUB symbol grub_memcpy. This is a GRUB symbol/linking failure,
+    not verified evidence that Linux initramfs lacks a component.
+    The ISO-specific GRUB prefix may have caused incompatible modules
+    from the ISO to load against m-boot's GRUB core; investigate that
+    separately before claiming Grml boots.
     Proxmox passes initial boot but cannot find the ISO matching its
     installation-media ID. TrueNAS drops to BusyBox. These are
     operator-observed outcomes, not complete installer compatibility.
