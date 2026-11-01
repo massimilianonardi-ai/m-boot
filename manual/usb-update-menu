@@ -1,0 +1,56 @@
+NAME
+    usb-update-menu.sh - non-destructive m-loader menu-only ESP synchronization
+
+SYNOPSIS
+    sh ./usb-update-menu.sh --esp MOUNTPOINT [--apply]
+
+PURPOSE
+    On a previously provisioned m-boot USB, update only the six external
+    GRUB menu scripts loader/menu/boot-media* on the existing FAT32
+    MBOOTESP. No GRUB rebuild, boot-sector image write, EFI executable
+    replacement, filesystem format, ext4 operation or ISO copy is done.
+
+REQUIREMENTS
+    Linux; mounted actual MBOOTESP with LABEL=MBOOTESP, vfat filesystem,
+    existing EFI/BOOT/BOOTX64.EFI, EFI/BOOT/BOOTAA64.EFI and external
+    m/boot/loader/init. The ESP must be writable by the invoking user.
+    Git checkout of current m-boot including the bundled GRUB 2.12
+    grub-script-check. Host HOME outside the ESP, writable for backups.
+
+    Safely stop QEMU and any USB consumers. Reidentify the physical
+    USB disk by model/serial rather than assuming a /dev/sdX number.
+    Verify all MBOOTDATA copies have completed and unmount ext4 before
+    mounting the ESP for this operation.
+
+OPERATION
+    First run without --apply to validate source GRUB syntax and verify
+    that the mounted destination belongs to m-boot; it makes no changes.
+
+    --apply creates a private mboot-menu-backup.XXXXXXXX directory under
+    HOME. It copies existing destination menu scripts there, then stages
+    and verifies all six new files on the ESP before replacing only those
+    scripts. The backup directory persists for operator-controlled rollback.
+    Abort/partial failure does not silently erase backup or ext4 files.
+
+EXAMPLE (REPLACE DEVICE WITH OPERATOR-VERIFIED MBOOTESP PARTITION)
+    cd /m/src/git/m-boot
+    git pull --ff-only
+    lsblk -o NAME,PATH,MODEL,SERIAL,SIZE,FSTYPE,LABEL,MOUNTPOINTS
+    sudo mkdir -p /mnt/mboot-esp
+    sudo mount -t vfat -o uid="$(id -u)",gid="$(id -g)" \
+      /dev/sda2 /mnt/mboot-esp
+
+    sh ./usb-update-menu.sh --esp /mnt/mboot-esp
+    sh ./usb-update-menu.sh --esp /mnt/mboot-esp --apply
+    sudo umount /mnt/mboot-esp
+
+    Do not run these commands if /dev/sda2 is not confirmed as MBOOTESP.
+    Do not run usb-install.sh: it erases the whole physical device.
+    For a partial failure, use the saved host backup to restore only
+    the original ESP menu files before attempting a new boot test.
+
+VALIDATION
+    Successful script syntax and byte-comparison prove the copied GRUB
+    sources; ISO boot and firmware input remain physical/QEMU tests.
+    An already-flashed medium does not inherit Git repository menu edits
+    automatically. This command closes that gap without reflashing.
