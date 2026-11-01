@@ -6,6 +6,8 @@ on:
       - loader/menu/boot-media*
       - loader/menu/iso-boot/**
       - manual/boot-media
+      - manual/usb-update-menu
+      - usb-update-menu.sh
       - build.sh
       - .github/workflows/validate-boot-media.yml
   workflow_dispatch:
@@ -40,4 +42,11 @@ jobs:
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-network
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-diagnostics
           test -s manual/boot-media
+          test -s manual/usb-update-menu
+          sh -n usb-update-menu.sh
+          sh usb-update-menu.sh --help
+          if sh usb-update-menu.sh --esp / --apply; then
+            echo 'ERROR: menu updater allowed unsafe root mountpoint' >&2
+            exit 1
+          fi
           echo 'PASS: current GRUB scripts parse; boot correctness still needs ISO and firmware tests'
