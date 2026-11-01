@@ -43,12 +43,46 @@ done
 if [ "$grub_cpu" != arm64 ]
 then
   for image in "$isopath"/proxmox-backup-server_*.iso \
-    "$isopath"/TrueNAS-SCALE-*.iso \
     "$isopath"/OPNsense-*-amd64.iso
   do
     if [ -f "$image" ]
     then
       boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+
+  for image in "$isopath"/TrueNAS-SCALE-*.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+      # Debian live-boot can locate an ISO file by findiso=; current
+      # TrueNAS installer additionally needs its installation medium.
+      # This test intentionally does not claim /cdrom will be available.
+      menuentry "$image (live-boot findiso experiment)" "$image" {
+        if boot_media_iso_open "$2"
+        then
+          if [ -f "(loop)/vmlinuz" ]
+          then
+            if [ -f "(loop)/initrd.img" ]
+            then
+              echo "Experimental TrueNAS live-boot ISO search: $iso_path"
+              echo "A usable installer still requires installation media."
+              linux (loop)/vmlinuz gfxpayload=text quiet nomodeset boot=live toram=filesystem.squashfs findiso="$iso_path" console=tty0
+              initrd (loop)/initrd.img
+            else
+              echo "TrueNAS ISO has no root initrd.img."
+              sleep --interruptible 30
+            fi
+          else
+            echo "TrueNAS ISO has no root vmlinuz."
+            sleep --interruptible 30
+          fi
+          boot_media_iso_close
+        else
+          sleep --interruptible 30
+        fi
+      }
     fi
   done
 fi
