@@ -40,6 +40,7 @@ then
 else
   # Make the ISO paths Linux-initramfs friendly: absolute paths *within*
   # the selected filesystem, not GRUB "(hdX,gptY)/..." device-qualified paths.
+  source "$prefix/menu/boot-media-iso"
   set root="$boot_media_device"
   set isopath="/m/boot/iso"
   set efipath="/m/boot/efi"
