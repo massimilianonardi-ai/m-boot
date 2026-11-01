@@ -26,6 +26,11 @@ CATEGORIES AND TEST ACTIONS
 
     Live systems and installers:
       Native-architecture Ubuntu desktop ISO (AMD64 on x86, ARM64 on ARM).
+      Kali Linux Live (matching *-live-amd64.iso on x86 or
+      *-live-arm64.iso on ARM64): direct Debian live-boot kernel/initrd
+      from inside the ISO, with findiso= pointing to the ISO on ext4.
+      Separate normal and forensic (noswap/noautomount) entries and
+      read-only ISO inspection; no installer or persistence menu.
       Proxmox VE native architecture; AMD64 also lists Proxmox Backup Server,
       TrueNAS SCALE and OPNsense DVD ISO. TrueNAS has an additional
       explicitly experimental live-boot findiso entry that passes the
@@ -62,6 +67,28 @@ CATEGORIES AND TEST ACTIONS
     their previous boot path. Native ISO GRUB menus may still need a
     real block/optical device after kernel handoff.
 
+
+KALI LIVE FILE-COPY WORKFLOW
+    Preferred source: https://www.kali.org/get-kali/ (Live Boot).
+    2026.3 AMD64 ISO:
+      https://cdimage.kali.org/kali-2026.3/kali-linux-2026.3-live-amd64.iso
+    2026.3 AMD64 published SHA256:
+      93a40ef53936719119824c3f0f0742ab50a045e2e082b95e382cf9f2f1f8acbb
+    Compare the downloaded file with Kali's official release SHA256SUMS
+    using sha256sum before copying it to MBOOTDATA/m/boot/iso/.
+    Use the unmodified basename: kali-linux-2026.3-live-amd64.iso.
+    Do not flash the Kali ISO over the m-boot USB.
+    After copying the ISO, the existing menu automatically discovers it
+    when the corresponding six ESP scripts have been updated.
+    The native boot file locations /live/vmlinuz and /live/initrd.img
+    are checked by GRUB at runtime, rather than assumed to exist
+    in every future Kali image revision.
+    The Kali boot parameters boot=live components findiso=<absolute path>
+    rely on Debian live-boot finding the ISO on the ext4 data partition.
+    A Kali Live menu entry is not proof that a specific ISO has reached
+    a usable desktop. The forensic option passes noswap noautomount
+    as Kali documents; this does not replace disciplined evidence
+    handling or guarantee that all tools avoid disk writes.
 
 BOOT COMPATIBILITY AND LIMITATIONS
     Actual operator ISO inventory on 2026-11-01: 18 .iso files
