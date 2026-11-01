@@ -29,11 +29,12 @@ usb_describe()
 }
 usb_size()
 {
-  blockdev --getsize64 "$1"
+  # Probe physical disk geometry without requiring a privileged block open.
+  lsblk -bdnro SIZE "$1"
 }
 usb_sector()
 {
-  blockdev --getss "$1"
+  lsblk -dnro LOG-SEC "$1"
 }
 usb_identity()
 {
