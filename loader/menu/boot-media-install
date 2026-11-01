@@ -1,5 +1,84 @@
 # Architecture-specific live systems and installers on MBOOTDATA.
 # The experimental route tries the ISO's own GRUB menu or EFI loader.
+
+# Kali live uses Debian live-boot; findiso= identifies the ISO on ext4
+# after GRUB hands off to the kernel. Forensic mode adds Kali's published
+# noswap/noautomount parameters; persistence is deliberately not enabled.
+function boot_media_kali_live {
+  if boot_media_iso_open "$1"
+  then
+    if [ -f "(loop)/live/vmlinuz" ]
+    then
+      if [ -f "(loop)/live/initrd.img" ]
+      then
+        echo "Starting Kali Linux Live from $iso_path"
+        if [ "$2" = forensic ]
+        then
+          linux (loop)/live/vmlinuz boot=live components findiso="$iso_path" noswap noautomount
+        else
+          linux (loop)/live/vmlinuz boot=live components findiso="$iso_path"
+        fi
+        initrd (loop)/live/initrd.img
+      else
+        echo "Kali Live ISO does not contain /live/initrd.img."
+        echo "Inspect this image before selecting a different boot recipe."
+        sleep --interruptible 30
+      fi
+    else
+      echo "Kali Live ISO does not contain /live/vmlinuz."
+      echo "Expected a Live image, not an Installer image."
+      sleep --interruptible 30
+    fi
+    boot_media_iso_close
+  else
+    sleep --interruptible 30
+  fi
+}
+
+# Only offer Kali images matching GRUB's active architecture.
+if [ "$grub_cpu" = arm64 ]
+then
+  for image in "$isopath"/kali-linux-*-live-arm64.iso
+  do
+    if [ -f "$image" ]
+    then
+      submenu "$image (Kali Live ARM64) ->" "$image" {
+        set selected_iso="$2"
+        export selected_iso
+        menuentry "Kali Linux Live (no persistence)" {
+          boot_media_kali_live "$selected_iso" normal
+        }
+        menuentry "Kali Linux Live (forensic: no swap/automount)" {
+          boot_media_kali_live "$selected_iso" forensic
+        }
+        menuentry "Inspect Kali ISO files" {
+          boot_media_iso_inspect "$selected_iso"
+        }
+      }
+    fi
+  done
+else
+  for image in "$isopath"/kali-linux-*-live-amd64.iso
+  do
+    if [ -f "$image" ]
+    then
+      submenu "$image (Kali Live AMD64) ->" "$image" {
+        set selected_iso="$2"
+        export selected_iso
+        menuentry "Kali Linux Live (no persistence)" {
+          boot_media_kali_live "$selected_iso" normal
+        }
+        menuentry "Kali Linux Live (forensic: no swap/automount)" {
+          boot_media_kali_live "$selected_iso" forensic
+        }
+        menuentry "Inspect Kali ISO files" {
+          boot_media_iso_inspect "$selected_iso"
+        }
+      }
+    fi
+  done
+fi
+
 for image in "$isopath"/ubuntu-*-desktop-*.iso
 do
   if [ -f "$image" ]
