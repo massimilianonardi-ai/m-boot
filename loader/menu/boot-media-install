@@ -1,18 +1,55 @@
-# Reuse the existing Ubuntu loopback.cfg recipe, not the historical
-# Windows/NaVi image menu. Proxmox/TrueNAS/OPNsense need separate validation.
-source "$prefix/menu/iso-boot/ubuntu.d/desktop-generic.cfg"
-
-for image in "$isopath"/proxmox-ve_*.iso \
-  "$isopath"/proxmox-backup-server_*.iso \
-  "$isopath"/TrueNAS-SCALE-*.iso \
-  "$isopath"/OPNsense-*.iso
+# Live installers available as regular files on the ext4 payload volume.
+# Architecture-filtered Ubuntu and Proxmox menus avoid misleading cross-CPU choices.
+for image in "$isopath"/ubuntu-*-desktop-*.iso
 do
   if [ -f "$image" ]
   then
-    menuentry "$image (boot recipe pending)" "$image" {
-      echo "Installer boot recipe not yet verified for:"
-      echo "$2"
-      sleep --interruptible 30
-    }
+    if [ "$grub_cpu" = arm64 ]
+    then
+      if regexp -- '-arm64\.iso$' "$image"
+      then
+        boot_media_iso_experimental "$image" "$image"
+      fi
+    else
+      if regexp -- '-amd64\.iso$' "$image"
+      then
+        boot_media_iso_experimental "$image" "$image"
+      fi
+    fi
   fi
 done
+
+for image in "$isopath"/proxmox-ve_*.iso
+do
+  if [ -f "$image" ]
+  then
+    if [ "$grub_cpu" = arm64 ]
+    then
+      if regexp -- '-arm64\.iso$' "$image"
+      then
+        boot_media_iso_experimental "$image" "$image"
+      fi
+    else
+      if regexp -- 'proxmox-ve_[^-]+\.iso$' "$image"
+      then
+        boot_media_iso_experimental "$image" "$image"
+      fi
+    fi
+  fi
+done
+
+if [ "$grub_cpu" != arm64 ]
+then
+  for image in "$isopath"/proxmox-backup-server_*.iso \
+    "$isopath"/TrueNAS-SCALE-*.iso \
+    "$isopath"/OPNsense-*-amd64.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+fi
+
+# .iso.bz2 is a compressed archive, not a bootable ISO file. Its .iso
+# counterpart is represented above; never try to loopback a bzip2 stream.
