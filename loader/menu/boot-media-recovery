@@ -1,24 +1,73 @@
-# Only use historical recipes whose filename patterns match the actual
-# payloads. Successful boot on these *new* ISO versions is not yet proven.
-if [ "$grub_cpu" != "arm64" ]
+# Recovery ISO list for the actual MBOOTDATA payloads.
+# Keep the working historical Clonezilla/GParted boot recipes on x86.
+if [ "$grub_cpu" != arm64 ]
 then
   source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"
   source "$prefix/menu/iso-boot/gparted.d/generic.cfg"
-  source "$prefix/menu/iso-boot/grml.d/generic.cfg"
-fi
 
-# The remaining current images have no validated matching recipe.
-for image in "$isopath"/systemrescue-*.iso "$isopath"/rescuezilla-*.iso \
-  "$isopath"/finnix-*.iso "$isopath"/HBCD_PE_*.iso \
-  "$isopath"/supergrub2-*.iso "$isopath"/grml*-arm64.iso
-do
-  if [ -f "$image" ]
-  then
-    menuentry "$image (boot recipe pending)" "$image" {
-      echo "Boot recipe not yet verified for:"
-      echo "$2"
-      echo "A checksummed ISO is not automatically bootable using GRUB loopback."
-      sleep --interruptible 30
-    }
-  fi
-done
+  for image in "$isopath"/grml-*-amd64.iso \
+    "$isopath"/grml-full-*-amd64.iso \
+    "$isopath"/finnix-*.iso \
+    "$isopath"/systemrescue-*.iso \
+    "$isopath"/supergrub2-*.iso \
+    "$isopath"/HBCD_PE_*.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+
+  # Rescuezilla provides casper kernel/initrd and ISO-search boot parameters.
+  # These paths are checked inside the ISO before invoking the kernel.
+  for image in "$isopath"/rescuezilla-*.iso
+  do
+    if [ -f "$image" ]
+    then
+      submenu "$image ->" "$image" {
+        set selected_iso="$2"
+        export selected_iso
+        menuentry "Boot Rescuezilla live (casper, experimental)" {
+          if boot_media_iso_open "$selected_iso"
+          then
+            if [ -f "(loop)/casper/vmlinuz" ]
+            then
+              if [ -f "(loop)/casper/initrd.lz" ]
+              then
+                linux (loop)/casper/vmlinuz boot=casper iso-scan/filename="$iso_path" quiet splash fsck.mode=skip noprompt --
+                initrd (loop)/casper/initrd.lz
+              else
+                if [ -f "(loop)/casper/initrd" ]
+                then
+                  linux (loop)/casper/vmlinuz boot=casper iso-scan/filename="$iso_path" quiet splash fsck.mode=skip noprompt --
+                  initrd (loop)/casper/initrd
+                else
+                  echo "Rescuezilla initrd is absent at expected casper paths."
+                  sleep --interruptible 30
+                fi
+              fi
+            else
+              echo "Rescuezilla casper/vmlinuz is absent."
+              sleep --interruptible 30
+            fi
+          fi
+        }
+        menuentry "Try ISO GRUB configuration" {
+          boot_media_iso_grub "$selected_iso"
+        }
+        menuentry "Inspect ISO boot files" {
+          boot_media_iso_inspect "$selected_iso"
+        }
+      }
+    fi
+  done
+else
+  for image in "$isopath"/grml-*-arm64.iso \
+    "$isopath"/grml-full-*-arm64.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+fi
