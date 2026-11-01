@@ -6,7 +6,6 @@ then
   source "$prefix/menu/iso-boot/gparted.d/generic.cfg"
 
   for image in "$isopath"/grml-*-amd64.iso \
-    "$isopath"/grml-full-*-amd64.iso \
     "$isopath"/finnix-*.iso \
     "$isopath"/systemrescue-*.iso \
     "$isopath"/supergrub2-*.iso \
