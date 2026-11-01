@@ -57,27 +57,55 @@ function boot_media_iso_efi {
   fi
   if boot_media_iso_open "$1"
   then
+    # ISO9660 path matching can be case-sensitive. The real physical
+    # inventory includes several case variants across Ubuntu, Grml,
+    # Proxmox, TrueNAS and HBCD PE: use paths proven to occur.
     set efi_image=""
     if [ "$grub_cpu" = arm64 ]
     then
-      set efi_image="(loop)/EFI/BOOT/BOOTAA64.EFI"
+      for efi_candidate in \
+        "(loop)/EFI/BOOT/BOOTAA64.EFI" \
+        "(loop)/EFI/BOOT/bootaa64.efi" \
+        "(loop)/EFI/boot/bootaa64.efi" \
+        "(loop)/efi/boot/bootaa64.efi"
+      do
+        if [ -f "$efi_candidate" ]
+        then
+          set efi_image="$efi_candidate"
+          break
+        fi
+      done
     else
-      set efi_image="(loop)/EFI/BOOT/BOOTX64.EFI"
+      if [ "$grub_cpu" = x86_64 ]
+      then
+        for efi_candidate in \
+          "(loop)/EFI/BOOT/BOOTX64.EFI" \
+          "(loop)/EFI/BOOT/bootx64.efi" \
+          "(loop)/EFI/boot/bootx64.efi" \
+          "(loop)/efi/boot/bootx64.efi"
+        do
+          if [ -f "$efi_candidate" ]
+          then
+            set efi_image="$efi_candidate"
+            break
+          fi
+        done
+      fi
     fi
-    if [ -f "$efi_image" ]
+    if [ -n "$efi_image" ]
     then
       echo "Experimental: chainloading $efi_image from ISO loopback."
-      echo "Firmware-dependent; ISO early userspace may still need CD media."
+      echo "This does not emulate optical media for the OS or firmware."
       if chainloader "$efi_image"
       then
         boot
       else
-        echo "GRUB could not chainload the embedded EFI image."
+        echo "GRUB could not chainload $efi_image."
         sleep --interruptible 30
       fi
     else
-      echo "No compatible EFI fallback application in this ISO."
-      echo "$efi_image"
+      echo "No matching EFI fallback file found for CPU $grub_cpu."
+      echo "Verified candidate locations: EFI/BOOT and efi/boot."
       sleep --interruptible 30
     fi
     boot_media_iso_close
