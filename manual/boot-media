@@ -17,9 +17,11 @@ DISK PATHS
 CATEGORIES AND TEST ACTIONS
     Recovery and backup:
       x86 BIOS/UEFI: Clonezilla and GParted historical Linux-live recipes,
-      Grml AMD64, Finnix, SystemRescue, Super Grub2 classic, HBCD_PE.
+      Grml AMD64 (ISO GRUB prefix and findiso handoff), Finnix,
+      SystemRescue, Super Grub2 classic, HBCD_PE.
       Rescuezilla also exposes a dedicated casper kernel/initrd attempt.
-      ARM64 UEFI: only matching Grml ARM64 images.
+      ARM64 UEFI: only matching Grml ARM64 images, with ISO-specific
+      GRUB prefix and findiso parameter propagation.
 
     Live systems and installers:
       Native-architecture Ubuntu desktop ISO (AMD64 on x86, ARM64 on ARM).
@@ -28,7 +30,9 @@ CATEGORIES AND TEST ACTIONS
       archive, not an additional bootable ISO.
 
     Hardware diagnostics:
-      Memtest86+ x86_64 ISO and optional unpacked EFI binaries.
+      Memtest86+ 9.00 from unpacked native binaries under
+      /m/boot/efi/memtest/ (x86_64/i586 GRUB linux/linux16,
+      ARM64 UEFI chainloading). The ISO is inspection-only.
 
     Network boot:
       netboot.xyz multiarch ISO and optional architecture-matched iPXE
@@ -51,6 +55,16 @@ BOOT COMPATIBILITY AND LIMITATIONS
     Some products, including Proxmox installers, TrueNAS, OPNsense, HBCD_PE,
     and netboot.xyz ISO BIOS path, can require a dedicated media emulation
     bridge/boot recipe; their menu presence is not proof of compatibility.
+
+    User's first post-update test reports Memtest86+, Grml and HBCD PE
+    failing, while Clonezilla, GParted, Finnix, SystemRescue,
+    Super Grub2, Rescuezilla, and netboot.xyz/iPXE work; the installer
+    category except Ubuntu does not work. These are operator-reported
+    outcomes, not detailed per-image kernel/root diagnostics. Changes
+    after that report provide native Memtest direct entries and a Grml
+    ISO-specific GRUB prefix. Neither improvement has been physically
+    validated. HBCD PE and most installers retain experimental attempts;
+    robust virtual-CD/early-userspace compatibility remains open.
 
     The legacy ISO recipes from aguslr/multibootusb remain present on ESP.
     Clonezilla and GParted use their retained historical recipes. Ubuntu
