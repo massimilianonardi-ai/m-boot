@@ -9,7 +9,9 @@ function boot_media_grml {
     set boot_media_grml_previous_prefix="$prefix"
     set prefix="(loop)/boot/grub"
     set root=loop
-    set kernelopts=""
+    # Optional GRML kernel parameters support a dedicated read-only
+    # diagnostic path; the normal boot keeps the existing options.
+    set kernelopts="$2"
     export iso_path kernelopts
     if [ -f "(loop)/boot/grub/loopback.cfg" ]
     then
@@ -56,6 +58,9 @@ then
         export selected_iso
         menuentry "Boot Grml using ISO GRUB configuration" {
           boot_media_grml "$selected_iso"
+        }
+        menuentry "Boot Grml with verbose initramfs diagnostics" {
+          boot_media_grml "$selected_iso" "debug=1 rootdelay=9"
         }
         menuentry "Inspect ISO boot files" {
           boot_media_iso_inspect "$selected_iso"
@@ -117,6 +122,9 @@ else
         export selected_iso
         menuentry "Boot Grml using ISO GRUB configuration" {
           boot_media_grml "$selected_iso"
+        }
+        menuentry "Boot Grml with verbose initramfs diagnostics" {
+          boot_media_grml "$selected_iso" "debug=1 rootdelay=9"
         }
         menuentry "Inspect ISO boot files" {
           boot_media_iso_inspect "$selected_iso"
