@@ -1,0 +1,122 @@
+# Shared GRUB ISO inspection/boot operations used by the categorized ESP menu.
+# The source ISO remains on MBOOTDATA; GRUB loopback does NOT create an OS CD.
+function boot_media_iso_open {
+  set iso_path="$1"
+  export iso_path
+  if search --no-floppy --file --set=root "$iso_path"
+  then
+    if loopback loop "$iso_path"
+    then
+      return 0
+    fi
+    echo "GRUB cannot open the ISO as loopback: $iso_path"
+  else
+    echo "ISO not found: $iso_path"
+  fi
+  return 1
+}
+
+function boot_media_iso_grub {
+  if boot_media_iso_open "$1"
+  then
+    if [ -f "(loop)/boot/grub/loopback.cfg" ]
+    then
+      set root=loop
+      configfile /boot/grub/loopback.cfg
+    else
+      if [ -f "(loop)/boot/grub/grub.cfg" ]
+      then
+        echo "Experimental: ISO grub.cfg may assume real CD/USB media."
+        set root=loop
+        configfile /boot/grub/grub.cfg
+      else
+        echo "No GRUB loopback.cfg or grub.cfg found inside ISO."
+        echo "This image needs a boot-specific recipe or virtual CD."
+        sleep --interruptible 30
+      fi
+    fi
+    loopback --delete loop
+  else
+    sleep --interruptible 30
+  fi
+}
+
+function boot_media_iso_efi {
+  if [ "$grub_platform" != efi ]
+  then
+    echo "EFI chainloading requires UEFI."
+    sleep --interruptible 30
+    return 1
+  fi
+  if boot_media_iso_open "$1"
+  then
+    set efi_image=""
+    if [ "$grub_cpu" = arm64 ]
+    then
+      set efi_image="(loop)/EFI/BOOT/BOOTAA64.EFI"
+    else
+      set efi_image="(loop)/EFI/BOOT/BOOTX64.EFI"
+    fi
+    if [ -f "$efi_image" ]
+    then
+      echo "Experimental: chainloading $efi_image from ISO loopback."
+      echo "Firmware-dependent; ISO early userspace may still need CD media."
+      if chainloader "$efi_image"
+      then
+        boot
+      else
+        echo "GRUB could not chainload the embedded EFI image."
+        sleep --interruptible 30
+      fi
+    else
+      echo "No compatible EFI fallback application in this ISO."
+      echo "$efi_image"
+      sleep --interruptible 30
+    fi
+    loopback --delete loop
+  else
+    sleep --interruptible 30
+  fi
+}
+
+function boot_media_iso_inspect {
+  if boot_media_iso_open "$1"
+  then
+    echo "ISO contents: $iso_path"
+    ls (loop)/
+    if [ -d "(loop)/boot/grub" ]
+    then
+      echo "GRUB directory:"
+      ls (loop)/boot/grub/
+    fi
+    if [ -d "(loop)/EFI/BOOT" ]
+    then
+      echo "EFI fallback directory:"
+      ls (loop)/EFI/BOOT/
+    fi
+    loopback --delete loop
+  fi
+  echo "Press Escape to return to the menu."
+  sleep --interruptible 60
+}
+
+# Common experimental ISO submenu: exposes real attempts plus inspection.
+# A visible ISO entry is not a claim that the operating system can mount it.
+function boot_media_iso_experimental {
+  submenu "$1 (experimental) ->" "$2" {
+    set selected_iso="$2"
+    export selected_iso
+    menuentry "Try ISO GRUB configuration" {
+      boot_media_iso_grub "$selected_iso"
+    }
+    if [ "$grub_platform" = efi ]
+    then
+      menuentry "Try embedded EFI application" {
+        boot_media_iso_efi "$selected_iso"
+      }
+    fi
+    menuentry "Inspect ISO files and boot paths" {
+      boot_media_iso_inspect "$selected_iso"
+    }
+  }
+}
