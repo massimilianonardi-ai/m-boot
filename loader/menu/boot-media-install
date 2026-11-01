@@ -6,12 +6,12 @@ do
   then
     if [ "$grub_cpu" = arm64 ]
     then
-      if regexp -- '-arm64\\.iso$' "$image"
+      if regexp -- '-arm64[.]iso$' "$image"
       then
         boot_media_iso_experimental "$image" "$image"
       fi
     else
-      if regexp -- '-amd64\\.iso$' "$image"
+      if regexp -- '-amd64[.]iso$' "$image"
       then
         boot_media_iso_experimental "$image" "$image"
       fi
@@ -25,12 +25,12 @@ do
   then
     if [ "$grub_cpu" = arm64 ]
     then
-      if regexp -- '-arm64\\.iso$' "$image"
+      if regexp -- '-arm64[.]iso$' "$image"
       then
         boot_media_iso_experimental "$image" "$image"
       fi
     else
-      if regexp -- '-arm64\\.iso$' "$image"
+      if regexp -- '-arm64[.]iso$' "$image"
       then
         echo "Skipping ARM64 Proxmox ISO on x86_64."
       else
