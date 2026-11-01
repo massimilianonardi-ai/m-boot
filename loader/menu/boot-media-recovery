@@ -36,8 +36,7 @@ then
   source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"
   source "$prefix/menu/iso-boot/gparted.d/generic.cfg"
 
-  for image in "$isopath"/grml-*-amd64.iso \
-    "$isopath"/finnix-*.iso \
+  for image in "$isopath"/finnix-*.iso \
     "$isopath"/systemrescue-*.iso \
     "$isopath"/supergrub2-*.iso \
     "$isopath"/HBCD_PE_*.iso
