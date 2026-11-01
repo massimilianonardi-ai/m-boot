@@ -30,7 +30,33 @@ do
         boot_media_iso_experimental "$image" "$image"
       fi
     else
-      if regexp -- 'proxmox-ve_[^-]+\.iso$' "$image"
+      if regexp -- '-arm64\.iso
+      then
+        boot_media_iso_experimental "$image" "$image"
+      fi
+    fi
+  fi
+done
+
+if [ "$grub_cpu" != arm64 ]
+then
+  for image in "$isopath"/proxmox-backup-server_*.iso \
+    "$isopath"/TrueNAS-SCALE-*.iso \
+    "$isopath"/OPNsense-*-amd64.iso
+  do
+    if [ -f "$image" ]
+    then
+      boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+fi
+
+# .iso.bz2 is a compressed archive, not a bootable ISO file. Its .iso
+# counterpart is represented above; never try to loopback a bzip2 stream.
+ "$image"
+      then
+        echo "Skipping ARM64 Proxmox ISO on x86_64."
+      else
       then
         boot_media_iso_experimental "$image" "$image"
       fi
