@@ -55,6 +55,7 @@ jobs:
           grep -F 'mt86p_900_arm64' loader/menu/boot-media-diagnostics
           grep -F 'linux "$2"' loader/menu/boot-media-diagnostics
           grep -F 'boot_media_grml "$selected_iso"' loader/menu/boot-media-recovery
+          grep -F 'boot_media_grml "$selected_iso" "debug=1 rootdelay=9"' loader/menu/boot-media-recovery
           test -s manual/boot-media
           test -s manual/usb-update-menu
           sh -n usb-update-menu.sh
