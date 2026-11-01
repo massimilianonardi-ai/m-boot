@@ -4,6 +4,8 @@ on:
     paths:
       - loader/init
       - loader/menu/boot-media*
+      - loader/menu/iso-boot/**
+      - manual/boot-media
       - build.sh
       - .github/workflows/validate-boot-media.yml
   workflow_dispatch:
@@ -19,14 +21,23 @@ jobs:
         run: |
           set -eu
           ./tools/grub-script-check --version
-          for script in loader/init loader/menu/boot-media loader/menu/boot-media-*
-          do
-            ./tools/grub-script-check "$script"
-          done
-          for script in             loader/menu/iso-boot/clonezilla.d/generic.cfg             loader/menu/iso-boot/gparted.d/generic.cfg             loader/menu/iso-boot/grml.d/generic.cfg             loader/menu/iso-boot/ubuntu.d/desktop-generic.cfg
-          do
+          for script in loader/init loader/menu/boot-media loader/menu/boot-media-*; do
             test -s "$script"
             ./tools/grub-script-check "$script"
           done
-          test -f manual/boot-media
-          echo 'PASS: GRUB syntax and referenced legacy recipes; boot UI is unverified'
+          for script in \
+            loader/menu/iso-boot/clonezilla.d/generic.cfg \
+            loader/menu/iso-boot/gparted.d/generic.cfg \
+            loader/menu/iso-boot/grml.d/generic.cfg \
+            loader/menu/iso-boot/ubuntu.d/desktop-generic.cfg; do
+            test -s "$script"
+            ./tools/grub-script-check "$script"
+          done
+          grep -F 'source "$prefix/menu/boot-media-iso"' loader/menu/boot-media
+          grep -F 'source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"' loader/menu/boot-media-recovery
+          grep -F 'boot_media_iso_experimental' loader/menu/boot-media-recovery
+          grep -F 'boot_media_iso_experimental' loader/menu/boot-media-install
+          grep -F 'boot_media_iso_experimental' loader/menu/boot-media-network
+          grep -F 'boot_media_iso_experimental' loader/menu/boot-media-diagnostics
+          test -s manual/boot-media
+          echo 'PASS: current GRUB scripts parse; boot correctness still needs ISO and firmware tests'
