@@ -120,3 +120,6 @@ function boot_media_iso_experimental {
     }
   }
 }
+
+# An explicitly successful source file (GRUB script-check also requires a command).
+true
