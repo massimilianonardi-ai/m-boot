@@ -32,13 +32,16 @@ jobs:
           printf 'sample GRUB configuration\n' > "$work/iso-src/boot/grub/loopback.cfg"
           printf 'sample EFI image\n' > "$work/iso-src/EFI/BOOT/BOOTX64.EFI"
           printf 'sample PE WIM\n' > "$work/iso-src/sources/boot.wim"
+          dd if=/dev/zero of="$work/iso-src/boot/grub/eltorito.img" bs=2048 count=1 status=none
           printf 'sample kernel\n' > "$root/m/boot/efi/memtest/mt86p_900_x86_64"
           xorriso -as mkisofs -quiet -V MBOOT_TEST \
+            -b boot/grub/eltorito.img -no-emul-boot -boot-load-size 4 \
             -o "$root/m/boot/iso/sample.iso" "$work/iso-src"
 
           ./tests/iso-boot-report.sh --data-root "$root" > "$work/report"
           cat "$work/report"
           grep -F '===== sample.iso =====' "$work/report"
+          grep -F 'El Torito boot img' "$work/report"
           grep -F '/boot/grub/loopback.cfg' "$work/report"
           grep -F '/EFI/BOOT/BOOTX64.EFI' "$work/report"
           grep -F '/sources/boot.wim' "$work/report"
