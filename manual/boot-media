@@ -17,8 +17,9 @@ DISK PATHS
 CATEGORIES AND TEST ACTIONS
     Recovery and backup:
       x86 BIOS/UEFI: Clonezilla and GParted historical Linux-live recipes,
-      Grml AMD64 (ISO GRUB prefix and findiso handoff), Finnix,
-      SystemRescue, Super Grub2 classic, HBCD_PE.
+      Grml AMD64 (ISO GRUB prefix and findiso handoff, plus
+      optional verbose initramfs diagnostics), Finnix, SystemRescue,
+      Super Grub2 classic, HBCD_PE.
       Rescuezilla also exposes a dedicated casper kernel/initrd attempt.
       ARM64 UEFI: only matching Grml ARM64 images, with ISO-specific
       GRUB prefix and findiso parameter propagation.
@@ -26,8 +27,11 @@ CATEGORIES AND TEST ACTIONS
     Live systems and installers:
       Native-architecture Ubuntu desktop ISO (AMD64 on x86, ARM64 on ARM).
       Proxmox VE native architecture; AMD64 also lists Proxmox Backup Server,
-      TrueNAS SCALE and OPNsense DVD ISO. OPNsense .iso.bz2 is a compressed
-      archive, not an additional bootable ISO.
+      TrueNAS SCALE and OPNsense DVD ISO. TrueNAS has an additional
+      explicitly experimental live-boot findiso entry that passes the
+      ISO pathname to the existing /vmlinuz and /initrd.img. It does
+      not emulate a CD for the installer. OPNsense .iso.bz2 is a
+      compressed archive, not an additional bootable ISO.
 
     Hardware diagnostics:
       Memtest86+ 9.00 from unpacked native binaries under
@@ -86,15 +90,25 @@ BOOT COMPATIBILITY AND LIMITATIONS
     and netboot.xyz ISO BIOS path, can require a dedicated media emulation
     bridge/boot recipe; their menu presence is not proof of compatibility.
 
-    User's first post-update test reports Memtest86+, Grml and HBCD PE
-    failing, while Clonezilla, GParted, Finnix, SystemRescue,
-    Super Grub2, Rescuezilla, and netboot.xyz/iPXE work; the installer
-    category except Ubuntu does not work. These are operator-reported
-    outcomes, not detailed per-image kernel/root diagnostics. Changes
-    after that report provide native Memtest direct entries and a Grml
-    ISO-specific GRUB prefix. Neither improvement has been physically
-    validated. HBCD PE and most installers retain experimental attempts;
-    robust virtual-CD/early-userspace compatibility remains open.
+    Operator's latest test (2026-11-01) confirms native Memtest86+
+    starts successfully. Grml passes its initial boot but stops later
+    reporting a missing component (exact text not yet supplied).
+    Proxmox passes initial boot but cannot find the ISO matching its
+    installation-media ID. TrueNAS drops to BusyBox. These are
+    operator-observed outcomes, not complete installer compatibility.
+    Proxmox's CD-ID lookup expects a real installation medium; no GRUB
+    loopback command alone makes the ISO file appear as optical media.
+    The new Grml debug=1 rootdelay=9 diagnostic submenu and TrueNAS
+    findiso= experiment are pending runtime testing. Neither changes
+    the existing default Grml/TrueNAS paths. HBCD PE, Proxmox, TrueNAS,
+    and other installers still require verified per-family support.
+
+    TrueNAS uses Debian live-boot semantics, where findiso= can select
+    an ISO stored on a disk. Even if it reaches its live root, TrueNAS
+    also has an installer stage scanning for its TrueNAS-SCALE.update
+    medium, which may fail without an optical-media bridge. This
+    experimental route should be tested for the exact stage reached,
+    not interpreted as successful installation.
 
     The legacy ISO recipes from aguslr/multibootusb remain present on ESP.
     Clonezilla and GParted use their retained historical recipes. Ubuntu
