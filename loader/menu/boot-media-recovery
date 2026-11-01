@@ -61,8 +61,7 @@ then
     fi
   done
 else
-  for image in "$isopath"/grml-*-arm64.iso \
-    "$isopath"/grml-full-*-arm64.iso
+  for image in "$isopath"/grml-*-arm64.iso
   do
     if [ -f "$image" ]
     then
