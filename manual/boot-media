@@ -43,7 +43,8 @@ CATEGORIES AND TEST ACTIONS
         available, else try its /boot/grub/grub.cfg (may assume optical media).
       - Try embedded EFI application: on matching UEFI only, probe
         the real ISO9660 case-sensitive variants of EFI/BOOT/BOOTX64.EFI,
-        EFI/BOOT/bootx64.efi, EFI/boot/bootx64.efi and
+        EFI/BOOT/BOOTx64.EFI, EFI/BOOT/bootx64.efi,
+        EFI/boot/bootx64.efi and
         efi/boot/bootx64.efi (or corresponding BOOTAA64/bootaa64).
         A matching file is not proof it can run from GRUB loopback.
       - Inspect ISO files and boot paths: list GRUB/EFI directories in GRUB.
