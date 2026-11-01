@@ -1,0 +1,52 @@
+NAME
+    iso-boot-report.sh - inspect boot entries inside MBOOTDATA ISO files
+
+SYNOPSIS
+    ./tests/iso-boot-report.sh --data-root DIRECTORY
+
+DESCRIPTION
+    Reads each *.iso in DIRECTORY/m/boot/iso using xorriso and reports
+    the volume ID, El Torito boot metadata and boot-related internal
+    file paths, including GRUB configurations, EFI fallback programs,
+    kernel/initrd paths and Windows PE boot material when present.
+    Checks native Memtest86+ 9.00 files under
+    DIRECTORY/m/boot/efi/memtest using file.
+
+    All ISO data and mounted filesystems are READ ONLY. No mounting,
+    flashing, copying or opening block devices. Uses a private temporary
+    directory for intermediate inventories and deletes it on exit.
+    stdout is the report, stderr is for failures.
+
+REQUIREMENTS
+    Linux host with xorriso, file, mktemp and a readable mounted
+    MBOOTDATA filesystem. The mounted ext4 filesystem should not be
+    exposed to a QEMU raw disk guest simultaneously with this utility.
+
+EXAMPLE
+    sudo apt install -y xorriso file
+    ./tests/iso-boot-report.sh \
+      --data-root /run/media/admino/MBOOTDATA \
+      > "$HOME/mboot-iso-boot-report.txt"
+
+INTERPRETATION
+    The El Torito BIOS/UEFI boot catalog shows whether an ISO exposes
+    optical boot facilities; it does not make a raw ISO file act as a CD.
+    Presence of boot/grub/loopback.cfg indicates a candidate GRUB file
+    boot path. A generic boot/grub/grub.cfg may assume physical media.
+    Kernel/initrd file locations are evidence for researching explicit
+    boot options, not automatically a valid recipe.
+    HBCD PE uses Windows PE artifacts rather than a Linux live root.
+    An ISO file may boot from QEMU virtual CD and fail through GRUB
+    loopback on the physical MBOOTDATA filesystem. Such differential
+    evidence is important for selecting a boot bridge mechanism.
+
+    This is static inspection, not a QEMU/firmware/OS boot result.
+    Record genuine visual start/menu/kernel/live-root outcomes separately.
+
+DIAGNOSTICS
+    Nonzero exit means missing operands/prerequisites, no ISO images
+    or one or more unreadable ISO inventories. Diagnostics identify
+    the failing file; successful images are still reported.
+
+SEE ALSO
+    manual/boot-media, manual/qemu-run, manual/usb-update-menu
