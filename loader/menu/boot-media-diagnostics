@@ -1,26 +1,26 @@
-# Memtest86+ 9.00 binaries have no .efi extension. Their actual format
-# must be verified before choosing linux16, linux or EFI chainloading.
+# Memtest86+ v9 image: try the ISO's own GRUB / EFI loader. The ISO
+# name alone does not determine its embedded BIOS/UEFI binary layout.
 for image in "$isopath"/memtest86plus_*.iso
 do
   if [ -f "$image" ]
   then
-    menuentry "Memtest86+ ISO (boot recipe pending)" "$image" {
-      echo "Memtest86+ ISO is present:"
-      echo "$2"
-      echo "Direct firmware/GRUB loading is not yet validated."
-      sleep --interruptible 30
-    }
+    boot_media_iso_experimental "$image" "$image"
   fi
 done
-for image in "$efipath"/memtest/mt86p_900_*
-do
-  if [ -f "$image" ]
-  then
-    menuentry "$image (boot mode pending)" "$image" {
-      echo "Memtest86+ binary is present:"
-      echo "$2"
-      echo "Select the correct firmware-specific loader after format validation."
-      sleep --interruptible 30
-    }
-  fi
-done
+
+# Unpacked architecture-specific Memtest86+ binaries, if the operator
+# also copied them under MBOOTDATA/m/boot/efi/memtest.
+if [ "$grub_platform" = efi ]
+then
+  for image in "$efipath"/memtest/mt86p_900_*.efi \
+    "$efipath"/memtest/memtest*.efi
+  do
+    if [ -f "$image" ]
+    then
+      menuentry "$image (UEFI chainload, experimental)" "$image" {
+        chainloader "$2"
+        boot
+      }
+    fi
+  done
+fi
