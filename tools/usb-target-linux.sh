@@ -2,7 +2,7 @@
 # Linux-specific operations sourced by usb-install.sh; no independent CLI.
 usb_require()
 {
-  for cmd in lsblk blockdev sgdisk partprobe udevadm mkfs.ext4 mount umount e2fsck findmnt swapon
+  for cmd in lsblk sgdisk partprobe udevadm mkfs.ext4 mount umount e2fsck findmnt swapon
   do
     command -v "$cmd" >/dev/null 2>&1 || usb_fail "missing Linux tool: $cmd"
   done
