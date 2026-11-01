@@ -1,8 +1,9 @@
-# EFI chainloading from an exFAT-backed GRUB filesystem is experimental:
-# successful discovery of the file does not guarantee firmware can load it.
-if [ "$grub_platform" = "efi" ]
+# Prefer a matching native iPXE image: the ISO is only a CD/DVD transport.
+# EFI applications on ext4 may be rejected by specific firmware: test results
+# belong to the selected architecture, not to a generic "netboot works" claim.
+if [ "$grub_platform" = efi ]
 then
-  if [ "$grub_cpu" = "x86_64" ]
+  if [ "$grub_cpu" = x86_64 ]
   then
     for image in "$efipath"/netboot/netboot.xyz.efi \
       "$efipath"/netboot/netboot.xyz-snp.efi \
@@ -10,13 +11,14 @@ then
     do
       if [ -f "$image" ]
       then
-        menuentry "$image (experimental UEFI chainload)" "$image" {
+        menuentry "$image (UEFI chainload, experimental)" "$image" {
           chainloader "$2"
+          boot
         }
       fi
     done
   fi
-  if [ "$grub_cpu" = "arm64" ]
+  if [ "$grub_cpu" = arm64 ]
   then
     for image in "$efipath"/netboot/netboot.xyz-arm64.efi \
       "$efipath"/netboot/netboot.xyz-arm64-snp.efi \
@@ -24,23 +26,34 @@ then
     do
       if [ -f "$image" ]
       then
-        menuentry "$image (experimental UEFI chainload)" "$image" {
+        menuentry "$image (UEFI chainload, experimental)" "$image" {
           chainloader "$2"
+          boot
         }
       fi
     done
   fi
 fi
-for image in "$isopath"/netboot.xyz-*.iso \
-  "$efipath"/netboot/*.kpxe "$efipath"/netboot/*.lkrn
+
+# The copied multiarch ISO can be inspected and its embedded EFI application
+# attempted on UEFI; standard GRUB does not provide BIOS ISO-emulation here.
+for image in "$isopath"/netboot.xyz-*.iso
 do
   if [ -f "$image" ]
   then
-    menuentry "$image (boot recipe pending)" "$image" {
-      echo "Network-boot payload present:"
-      echo "$2"
-      echo "Direct GRUB loading not yet validated for this format."
-      sleep --interruptible 30
-    }
+    boot_media_iso_experimental "$image" "$image"
   fi
 done
+
+if [ "$grub_platform" = pc ]
+then
+  for image in "$efipath"/netboot/*.lkrn
+  do
+    if [ -f "$image" ]
+    then
+      menuentry "$image (BIOS iPXE kernel)" "$image" {
+        linux16 "$2"
+      }
+    fi
+  done
+fi
