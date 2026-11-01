@@ -116,7 +116,9 @@ case "$target" in
       -drive "if=pflash,format=raw,readonly=on,file=$code" \
       -drive "if=pflash,format=raw,file=$work/vars.fd" \
       -drive "if=none,format=raw,file=$image,id=mboot" -device virtio-blk-device,drive=mboot \
-      -device ramfb -snapshot "$@" ;;
+      -device ramfb \
+      -device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0 \
+      -snapshot "$@" ;;
   i386-pc)
     "$qemu" -machine pc -accel tcg -m 1024 -smp 2 \
       -drive "if=none,format=raw,file=$image,id=mboot" -device ide-hd,drive=mboot \
