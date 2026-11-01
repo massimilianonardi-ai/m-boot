@@ -36,6 +36,17 @@ jobs:
             ./tools/grub-script-check "$script"
           done
           grep -F 'source "$prefix/menu/boot-media-iso"' loader/menu/boot-media
+          # Real USB inventory exposed these four case-sensitive EFI paths.
+          # The same file must keep its root-scoped ISO GRUB fallback.
+          for expected in \
+            '(loop)/EFI/BOOT/bootx64.efi' \
+            '(loop)/EFI/boot/bootx64.efi' \
+            '(loop)/efi/boot/bootx64.efi' \
+            '(loop)/EFI/BOOT/bootaa64.efi' \
+            '(loop)/efi/boot/bootaa64.efi' \
+            'set prefix="(loop)/boot/grub"'; do
+            grep -F "$expected" loader/menu/boot-media-iso
+          done
           grep -F 'source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-install
