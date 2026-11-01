@@ -100,7 +100,7 @@ do
     # xorriso quotes each reported pathname; remove surrounding quotes
     # before matching the actual ISO basename.
     sed -e "s/^'//" -e "s/'$//" "$work/paths" > "$work/clean-paths"
-    grep -Ei '/(loopback[.]cfg|grub[.]cfg|boot(x64|aa64)[.]efi|grub(x64|aa64)[.]efi|bootmgr|boot[.]wim|boot[.]sdi|vmlinuz[^/]*|initrd[^/]*|initram[^/]*|isolinux[.]cfg|syslinux[.]cfg|memtest[^/]*)
+    grep -Ei '/(loopback[.]cfg|grub[.]cfg|boot(x64|aa64)[.]efi|grub(x64|aa64)[.]efi|bootmgr|boot[.]wim|boot[.]sdi|vmlinuz[^/]*|initrd[^/]*|initram[^/]*|isolinux[.]cfg|syslinux[.]cfg|memtest[^/]*)' "$work/clean-paths" | head -n 90 || :
     printf '  (Absence from this filtered list does not prove absence of a boot route.)\n'
   else
     printf '  ERROR: cannot inspect ISO file paths.\n'
