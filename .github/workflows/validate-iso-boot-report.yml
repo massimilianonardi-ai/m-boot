@@ -1,0 +1,52 @@
+name: Validate read-only ISO boot inventory
+on:
+  push:
+    paths:
+      - tests/iso-boot-report.sh
+      - manual/iso-boot-report
+      - .github/workflows/validate-iso-boot-report.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  iso-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install genuine ISO inspection tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso file
+      - name: Inspect genuine ISO9660 fixture and reject invalid source
+        run: |
+          set -eu
+          sh -n tests/iso-boot-report.sh
+          ./tests/iso-boot-report.sh --help
+
+          work=$(mktemp -d)
+          trap 'rm -rf -- "$work"' EXIT
+          root="$work/data"
+          mkdir -p "$root/m/boot/iso" "$root/m/boot/efi/memtest"
+          mkdir -p "$work/iso-src/boot/grub" "$work/iso-src/EFI/BOOT" "$work/iso-src/sources"
+          printf 'sample GRUB configuration\n' > "$work/iso-src/boot/grub/loopback.cfg"
+          printf 'sample EFI image\n' > "$work/iso-src/EFI/BOOT/BOOTX64.EFI"
+          printf 'sample PE WIM\n' > "$work/iso-src/sources/boot.wim"
+          printf 'sample kernel\n' > "$root/m/boot/efi/memtest/mt86p_900_x86_64"
+          xorriso -as mkisofs -quiet -V MBOOT_TEST \
+            -o "$root/m/boot/iso/sample.iso" "$work/iso-src"
+
+          ./tests/iso-boot-report.sh --data-root "$root" > "$work/report"
+          cat "$work/report"
+          grep -F '===== sample.iso =====' "$work/report"
+          grep -F '/boot/grub/loopback.cfg' "$work/report"
+          grep -F '/EFI/BOOT/BOOTX64.EFI' "$work/report"
+          grep -F '/sources/boot.wim' "$work/report"
+          grep -F 'mt86p_900_x86_64:' "$work/report"
+          grep -F 'Summary: 1 ISO file(s) inspected; 0 inspection error(s).' "$work/report"
+
+          if ./tests/iso-boot-report.sh --data-root "$work/absent"; then
+            echo 'ERROR: missing MBOOTDATA accepted' >&2
+            exit 1
+          fi
+          echo 'PASS: read-only native ISO9660 inventory; firmware/ISO boot not tested'
