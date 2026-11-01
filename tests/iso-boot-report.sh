@@ -113,17 +113,3 @@ printf '\nSummary: %s ISO file(s) inspected; %s inspection error(s).\n' "$count"
 printf 'Only successful firmware/kernel/live-root testing can establish boot compatibility.\n'
 [ "$count" -gt 0 ] || fail "no ISO files under $iso_dir" 11
 [ "$failed" -eq 0 ] || fail "$failed ISO inspection errors occurred" 12
- \
-      "$work/clean-paths" | head -n 90 || :
-    printf '  (Absence from this filtered list does not prove absence of a boot route.)\n'
-  else
-    printf '  ERROR: cannot inspect ISO file paths.\n'
-    cat "$work/paths.err"
-    failed=$((failed + 1))
-  fi
-done
-
-printf '\nSummary: %s ISO file(s) inspected; %s inspection error(s).\n' "$count" "$failed"
-printf 'Only successful firmware/kernel/live-root testing can establish boot compatibility.\n'
-[ "$count" -gt 0 ] || fail "no ISO files under $iso_dir" 11
-[ "$failed" -eq 0 ] || fail "$failed ISO inspection errors occurred" 12
