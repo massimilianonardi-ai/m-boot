@@ -18,6 +18,9 @@ FIRMWARE
     i386-pc:    qemu-system-x86_64 and the QEMU BIOS (no external firmware).
     Common system locations are searched; pass both firmware paths if absent.
     No NVRAM template is altered by the test.
+    ARM64 virt includes an explicit XHCI controller and USB keyboard for
+    graphical GRUB menu input; a serial console alone does not provide
+    a substitute keyboard or mirror the gfxterm output.
 
 EXAMPLES
     tests/qemu-run.sh --target x86_64-efi \
