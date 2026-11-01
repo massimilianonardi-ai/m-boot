@@ -50,6 +50,15 @@ jobs:
           grep -F 'source "$prefix/menu/iso-boot/clonezilla.d/generic.cfg"' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-recovery
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-install
+          # Kali Live is an ISO file boot through Debian live-boot, not
+          # a generic optical EFI chainload or an installer recipe.
+          grep -F 'kali-linux-*-live-amd64.iso' loader/menu/boot-media-install
+          grep -F 'kali-linux-*-live-arm64.iso' loader/menu/boot-media-install
+          grep -F 'if [ -f "(loop)/live/vmlinuz" ]' loader/menu/boot-media-install
+          grep -F 'if [ -f "(loop)/live/initrd.img" ]' loader/menu/boot-media-install
+          grep -F 'linux (loop)/live/vmlinuz boot=live components findiso="$iso_path"' loader/menu/boot-media-install
+          grep -F 'linux (loop)/live/vmlinuz boot=live components findiso="$iso_path" noswap noautomount' loader/menu/boot-media-install
+          grep -F 'initrd (loop)/live/initrd.img' loader/menu/boot-media-install
           grep -F 'linux (loop)/vmlinuz gfxpayload=text quiet nomodeset boot=live toram=filesystem.squashfs findiso="$iso_path"' loader/menu/boot-media-install
           grep -F 'initrd (loop)/initrd.img' loader/menu/boot-media-install
           grep -F 'boot_media_iso_experimental' loader/menu/boot-media-network
