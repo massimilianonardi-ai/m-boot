@@ -82,12 +82,16 @@ jobs:
           loop=$(sudo losetup --find --show --partscan "$disk")
           test "$(sudo losetup -n -O BACK-FILE "$loop")" = "$disk"
           usb_disk="$loop"
-          usb_bytes=$(sudo blockdev --getsize64 "$usb_disk")
           usb_fail() { printf 'simulation: %s\n' "$1" >&2; exit 1; }
           usb_info() { printf 'simulation: %s\n' "$1"; }
           . ./tools/usb-gpt.sh
           . ./tools/usb-target-linux.sh
           usb_require
+          # The public installer probes geometry before sudo -v, as an
+          # ordinary operator: loop devices have no requirement to be openable.
+          usb_bytes=$(usb_size "$usb_disk")
+          test "$usb_bytes" -eq 4294967296
+          test "$(usb_sector "$usb_disk")" -eq 512
           usb_expand_gpt
           usb_refresh
           usb_format_mount
