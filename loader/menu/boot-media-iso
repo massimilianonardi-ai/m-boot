@@ -34,8 +34,14 @@ function boot_media_iso_grub {
       if [ -f "(loop)/boot/grub/grub.cfg" ]
       then
         echo "Experimental: ISO grub.cfg may assume real CD/USB media."
+        # Native optical-media grub.cfg often resolves sub-configurations
+        # through $prefix, so scope it to the mounted ISO while reading it.
+        # Keep the loopback.cfg path above unchanged for working Ubuntu.
+        set boot_media_iso_saved_prefix="$prefix"
         set root=loop
+        set prefix="(loop)/boot/grub"
         configfile /boot/grub/grub.cfg
+        set prefix="$boot_media_iso_saved_prefix"
       else
         echo "No GRUB loopback.cfg or grub.cfg found inside ISO."
         echo "This image needs a boot-specific recipe or virtual CD."
