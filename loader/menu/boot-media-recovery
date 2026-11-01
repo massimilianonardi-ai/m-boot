@@ -1,4 +1,35 @@
 # Recovery ISO list for the actual MBOOTDATA payloads.
+# Grml's ISO GRUB configuration references its own $prefix and the
+# exported iso_path to construct findiso= for initramfs discovery.
+# The generic boot_media_iso_grub helper leaves $prefix on the ESP,
+# so Grml needs a scoped ISO-specific GRUB prefix.
+function boot_media_grml {
+  if boot_media_iso_open "$1"
+  then
+    set boot_media_grml_previous_prefix="$prefix"
+    set prefix="(loop)/boot/grub"
+    set root=loop
+    set kernelopts=""
+    export iso_path kernelopts
+    if [ -f "(loop)/boot/grub/loopback.cfg" ]
+    then
+      configfile /boot/grub/loopback.cfg
+    else
+      if [ -f "(loop)/boot/grub/grub.cfg" ]
+      then
+        configfile /boot/grub/grub.cfg
+      else
+        echo "Grml boot/grub/loopback.cfg and grub.cfg are absent."
+        sleep --interruptible 30
+      fi
+    fi
+    set prefix="$boot_media_grml_previous_prefix"
+    boot_media_iso_close
+  else
+    sleep --interruptible 30
+  fi
+}
+
 # Keep the working historical Clonezilla/GParted boot recipes on x86.
 if [ "$grub_cpu" != arm64 ]
 then
@@ -14,6 +45,23 @@ then
     if [ -f "$image" ]
     then
       boot_media_iso_experimental "$image" "$image"
+    fi
+  done
+
+  for image in "$isopath"/grml-*-amd64.iso
+  do
+    if [ -f "$image" ]
+    then
+      submenu "$image (Grml ISO boot) ->" "$image" {
+        set selected_iso="$2"
+        export selected_iso
+        menuentry "Boot Grml using ISO GRUB configuration" {
+          boot_media_grml "$selected_iso"
+        }
+        menuentry "Inspect ISO boot files" {
+          boot_media_iso_inspect "$selected_iso"
+        }
+      }
     fi
   done
 
@@ -65,7 +113,16 @@ else
   do
     if [ -f "$image" ]
     then
-      boot_media_iso_experimental "$image" "$image"
+      submenu "$image (Grml ARM64 ISO boot) ->" "$image" {
+        set selected_iso="$2"
+        export selected_iso
+        menuentry "Boot Grml using ISO GRUB configuration" {
+          boot_media_grml "$selected_iso"
+        }
+        menuentry "Inspect ISO boot files" {
+          boot_media_iso_inspect "$selected_iso"
+        }
+      }
     fi
   done
 fi
