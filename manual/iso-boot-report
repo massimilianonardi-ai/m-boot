@@ -43,6 +43,22 @@ INTERPRETATION
     This is static inspection, not a QEMU/firmware/OS boot result.
     Record genuine visual start/menu/kernel/live-root outcomes separately.
 
+    When a specific ISO fails in m-loader, an optional differential
+    test is to present that exact file directly as a QEMU virtual optical
+    drive, WITHOUT attaching /dev/sda or any other physical whole disk.
+    Example on a Linux VM with the data filesystem normally mounted:
+
+        iso=/run/media/admino/MBOOTDATA/m/boot/iso/proxmox-ve_9.2-1.iso
+        qemu-system-x86_64 -machine pc -accel tcg -m 3072 -smp 2 \
+          -boot d -cdrom "$iso" -snapshot
+
+    The ISO is read by QEMU as an optical disc; no data-partition raw
+    disk is exposed to the guest and no physical USB writes are needed.
+    Observe optical firmware menu/kernel/installer stages, not just
+    process exit. On a small host, slower emulation or insufficient RAM
+    can prevent full installer validation. Do not use this baseline
+    to claim that GRUB loopback works.
+
 DIAGNOSTICS
     Nonzero exit means missing operands/prerequisites, no ISO images
     or one or more unreadable ISO inventories. Diagnostics identify
