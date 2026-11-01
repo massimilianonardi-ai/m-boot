@@ -41,12 +41,41 @@ CATEGORIES AND TEST ACTIONS
     Each experimental ISO submenu provides:
       - Try ISO GRUB configuration: use ISO /boot/grub/loopback.cfg where
         available, else try its /boot/grub/grub.cfg (may assume optical media).
-      - Try embedded EFI application: on UEFI only, use matching fallback
-        EFI/BOOT/BOOTX64.EFI or EFI/BOOT/BOOTAA64.EFI inside the ISO.
+      - Try embedded EFI application: on matching UEFI only, probe
+        the real ISO9660 case-sensitive variants of EFI/BOOT/BOOTX64.EFI,
+        EFI/BOOT/bootx64.efi, EFI/boot/bootx64.efi and
+        efi/boot/bootx64.efi (or corresponding BOOTAA64/bootaa64).
+        A matching file is not proof it can run from GRUB loopback.
       - Inspect ISO files and boot paths: list GRUB/EFI directories in GRUB.
     Missing files produce an explicit diagnostic instead of a false PASS.
 
+    For ISO images exposing only /boot/grub/grub.cfg rather than
+    loopback.cfg (for example the scanned TrueNAS and Proxmox media),
+    the experimental GRUB configuration action now scopes GRUB prefix
+    to the mounted ISO while reading that configuration, then restores
+    the ESP prefix. Images with loopback.cfg (including Ubuntu) retain
+    their previous boot path. Native ISO GRUB menus may still need a
+    real block/optical device after kernel handoff.
+
+
 BOOT COMPATIBILITY AND LIMITATIONS
+    Actual operator ISO inventory on 2026-11-01: 18 .iso files
+    successfully inspected, with no catalog/path inspection errors.
+    Memtest86+ 9.00 native x86_64/i586 files are Linux boot protocol
+    bzImages, and ARM64/LoongArch variants are EFI PE32+ applications.
+    Grml full 2026.09 both AMD64 and ARM64 contain loopback.cfg.
+    Proxmox VE 9.2-1 AMD64/ARM64 and PBS 4.2-1 expose grub.cfg and
+    EFI fallbacks, with case-sensitive lower-case efi/boot paths.
+    TrueNAS SCALE 25.10.7 exposes grub.cfg, /vmlinuz and /initrd.img;
+    its installer also searches for its installation medium.
+    HBCD PE x64 exposes /bootmgr, /boot/boot.sdi and
+    /sources/boot.wim, requiring a Windows PE loader or suitable
+    virtual optical drive; it does not provide a generic Linux
+    kernel/initrd entry. OPNsense 26.7 DVD is a FreeBSD-style ISO
+    with BIOS El Torito records in the inspected output, and lacks
+    a normal GRUB grub.cfg. These are inventory properties,
+    not confirmed installer compatibility.
+
     A GRUB loopback mount reads an ISO but does NOT expose it as a physical
     virtual CD device to Linux, Windows PE or BSD early userspace.
     A boot menu can execute while the selected operating system still fails
