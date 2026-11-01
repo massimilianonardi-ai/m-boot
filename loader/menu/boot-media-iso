@@ -86,6 +86,7 @@ function boot_media_iso_efi {
       then
         for efi_candidate in \
           "(loop)/EFI/BOOT/BOOTX64.EFI" \
+          "(loop)/EFI/BOOT/BOOTx64.EFI" \
           "(loop)/EFI/BOOT/bootx64.efi" \
           "(loop)/EFI/boot/bootx64.efi" \
           "(loop)/efi/boot/bootx64.efi"
