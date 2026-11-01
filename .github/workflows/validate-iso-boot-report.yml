@@ -37,8 +37,6 @@ jobs:
             -o "$root/m/boot/iso/sample.iso" "$work/iso-src"
 
           ./tests/iso-boot-report.sh --data-root "$root" > "$work/report"
-          echo 'DEBUG: raw xorriso ISO path inventory follows'
-          xorriso -indev "$root/m/boot/iso/sample.iso" -find / -type f -exec echo --
           cat "$work/report"
           grep -F '===== sample.iso =====' "$work/report"
           grep -F '/boot/grub/loopback.cfg' "$work/report"
